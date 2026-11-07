@@ -43,74 +43,109 @@
                     </InfoBar.ActionButton>
                 </InfoBar>
 
-                <!-- Preview beside the controls on wide windows -->
-                <c:AdaptiveGrid MinItemWidth="340" MaxColumns="2" ColumnSpacing="16" RowSpacing="16">
-                    <Border Style="{StaticResource Card}" Padding="16">
-                        <StackPanel Spacing="14">
-                            <Button x:Name="PreviewButton" Style="{StaticResource BareButton}" Click="Preview_Click" Height="260"
-                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-                                    CornerRadius="6" AutomationProperties.Name="Turn the light on or off">
+                <!-- Preview beside the controls on wide windows; the two cards stretch to the same height -->
+                <Grid x:Name="Split" ColumnSpacing="16" RowSpacing="16" SizeChanged="Split_SizeChanged">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.25*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border x:Name="PreviewCard" Style="{StaticResource Card}" Padding="16">
+                        <Grid RowSpacing="14">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <!-- The stage grows to fill the card -->
+                            <Button x:Name="PreviewButton" Style="{StaticResource BareButton}" Click="Preview_Click" MinHeight="260"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch" CornerRadius="6" AutomationProperties.Name="Turn the light on or off">
                                 <Grid x:Name="Stage" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
                                     <Border x:Name="StageGlow" />
                                     <Viewbox x:Name="BulbBox" Width="160" Height="236" />
                                 </Grid>
                             </Button>
-                            <StackPanel>
+                            <StackPanel Grid.Row="1">
                                 <TextBlock x:Name="Headline" FontSize="20" FontWeight="SemiBold" />
                                 <TextBlock Text="Click the preview to turn the light on or off" FontSize="12" Margin="0,2,0,0"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                        </StackPanel>
+                        </Grid>
                     </Border>
 
-                    <!-- Controls: one grouped card, like Windows Settings -->
-                    <Border Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
-                        <StackPanel>
-                            <Grid Padding="16,14" ColumnSpacing="12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Mode" FontSize="14" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" AutomationProperties.Name="Mode">
-                                    <ToggleButton x:Name="WhiteButton" Content="White" Height="32" Padding="16,0" CornerRadius="4,0,0,4"
-                                                  Click="White_Click" />
-                                    <ToggleButton x:Name="ColourButton" Content="Colour" Height="32" Padding="16,0" CornerRadius="0,4,4,0"
-                                                  Margin="-1,0,0,0" Click="Colour_Click" />
+                    <!-- Controls: lit by a soft wash of the light's own colour, with mode tiles, thick sliders and round
+                         swatches. The blocks spread out to fill the card, so it is always as tall as the preview. -->
+                    <Border x:Name="ControlsCard" Grid.Column="1" Style="{StaticResource Card}" Padding="0">
+                        <Grid>
+                            <Border x:Name="Wash" CornerRadius="8" IsHitTestVisible="False" />
+                            <Grid Padding="18">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="20" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="20" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Mode: two tiles -->
+                                <Grid x:Name="ModeTiles" ColumnSpacing="8" AutomationProperties.Name="Mode">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                </Grid>
+
+                                <!-- Brightness: a thick track that fills in the light's colour, dim and bright suns at its ends -->
+                                <StackPanel Grid.Row="2" Spacing="6">
+                                    <Grid>
+                                        <TextBlock Text="Brightness" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border x:Name="BrightnessPill" HorizontalAlignment="Right" MinWidth="44" Padding="8,3" CornerRadius="10">
+                                            <TextBlock x:Name="BrightnessText" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                    <Grid x:Name="BrightnessRow" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- White: warmth on a warm-to-cool track, and one-tap presets -->
+                                <StackPanel x:Name="WhitePanel" Grid.Row="4" Spacing="6">
+                                    <Grid>
+                                        <TextBlock Text="Warmth" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border x:Name="WarmthPill" HorizontalAlignment="Right" Padding="10,3" CornerRadius="10">
+                                            <TextBlock x:Name="WarmthText" FontSize="13" FontWeight="SemiBold" />
+                                        </Border>
+                                    </Grid>
+                                    <ContentPresenter x:Name="WarmthHost" />
+                                    <c:AdaptiveGrid x:Name="WhiteGrid" MinItemWidth="1" MaxColumns="5" ColumnSpacing="6" RowSpacing="6" Margin="0,4,0,0"
+                                                    AutomationProperties.Name="White presets" />
+                                </StackPanel>
+
+                                <!-- Colour: the shared swatch tiles in seven columns, and Custom -->
+                                <StackPanel x:Name="ColourPanel" Grid.Row="4" Spacing="12" Visibility="Collapsed">
+                                    <Grid>
+                                        <TextBlock Text="Colour" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border x:Name="ColourPill" HorizontalAlignment="Right" Padding="10,3" CornerRadius="10">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Ellipse x:Name="ColourDot" Width="10" Height="10" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="ColourNameText" FontSize="13" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <c:AdaptiveGrid x:Name="SwatchGrid" MinItemWidth="1" MaxColumns="7" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Colours" />
                                 </StackPanel>
                             </Grid>
-
-                            <StackPanel Padding="16,12" BorderThickness="0,0,0,1" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
-                                <Grid>
-                                    <TextBlock Text="Brightness" FontSize="14" />
-                                    <TextBlock x:Name="BrightnessText" FontSize="14" HorizontalAlignment="Right"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                </Grid>
-                                <Slider x:Name="BrightnessSlider" Minimum="1" Maximum="100" StepFrequency="1"
-                                        ValueChanged="Brightness_Changed" AutomationProperties.Name="Brightness" />
-                            </StackPanel>
-
-                            <StackPanel x:Name="WhitePanel" Padding="16,12">
-                                <Grid>
-                                    <TextBlock Text="Warmth" FontSize="14" />
-                                    <TextBlock x:Name="WarmthText" FontSize="14" HorizontalAlignment="Right"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                </Grid>
-                                <Slider x:Name="TempSlider" Minimum="0" Maximum="100" StepFrequency="1"
-                                        ValueChanged="Temp_Changed" AutomationProperties.Name="Warmth, from warm to cool white" />
-                                <Grid>
-                                    <TextBlock Text="Warm" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock Text="Cool" FontSize="12" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                </Grid>
-                            </StackPanel>
-
-                            <StackPanel x:Name="ColourPanel" Padding="16,12,16,16" Spacing="10" Visibility="Collapsed">
-                                <TextBlock Text="Colour" FontSize="14" />
-                                <c:AdaptiveGrid x:Name="SwatchGrid" MinItemWidth="36" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Colours" />
-                            </StackPanel>
-                        </StackPanel>
+                        </Grid>
                     </Border>
-                </c:AdaptiveGrid>
+                </Grid>
 
                 <!-- Scenes: each card shows a room lit the way the scene lights it -->
                 <StackPanel Spacing="8">
