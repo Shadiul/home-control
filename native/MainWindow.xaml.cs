@@ -180,6 +180,19 @@ public sealed partial class MainWindow : Window
                     App.Instance.Session.Preview(real);
                     await Task.Delay(300);
                 }
+                // Music sync as if running (drawn only: nothing is started).
+                if (tag == "music" && ContentFrame.Content is MusicPage musicPage)
+                {
+                    musicPage.PreviewRunning = true;
+                    await Task.Delay(900);
+                    if (musicPage.Content is ScrollViewer { Content: Panel musicBody })
+                    {
+                        musicBody.Background = Root.Background;
+                        await SaveAsync(musicBody, Path.Combine(dir, $"music-running-{theme}.png"));
+                        musicBody.Background = null;
+                    }
+                    musicPage.PreviewRunning = false;
+                }
                 // The second air conditioner too, when there is one (shows other louvre and switch states).
                 if (tag == "ac" && App.Instance!.Acs.Units.Count > 1 && ContentFrame.Content is AcPage acPage)
                 {
