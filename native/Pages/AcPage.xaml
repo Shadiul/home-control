@@ -106,13 +106,10 @@
                         <c:AdaptiveGrid x:Name="FlowGrid" MinItemWidth="300" ColumnSpacing="12" RowSpacing="12" />
                     </StackPanel>
 
+                    <!-- More options: Windows Settings cards, two columns when there's room -->
                     <StackPanel Spacing="8">
-                        <c:WrapPanel HorizontalSpacing="10" VerticalSpacing="2">
-                            <TextBlock Text="More options" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                            <TextBlock Text="Point at or tap the ⓘ on any option to see what it does" FontSize="12" Margin="0,2,0,0"
-                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </c:WrapPanel>
-                        <c:AdaptiveGrid x:Name="ExtrasGrid" MinItemWidth="300" ColumnSpacing="10" RowSpacing="10" />
+                        <TextBlock Text="More options" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <c:AdaptiveGrid x:Name="ExtrasGrid" MinItemWidth="420" MaxColumns="2" ColumnSpacing="4" RowSpacing="4" />
                     </StackPanel>
                 </StackPanel>
             </StackPanel>
