@@ -1,0 +1,9 @@
+<Project>
+  <!-- This source folder has a very long path. Build output goes to a short folder instead,
+       so no build tool runs into Windows' 260-character path limit. -->
+  <PropertyGroup>
+    <LedBuildRoot>$(LOCALAPPDATA)\Temp\LEDControlBuild\</LedBuildRoot>
+    <BaseIntermediateOutputPath>$(LedBuildRoot)obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(LedBuildRoot)bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LED Control</title>
+<style>
+  :root {
+    --bg: #121110;
+    --panel: #1c1a18;
+    --panel-2: #24221f;
+    --line: #34312c;
+    --text: #f1ece4;
+    --muted: #9b948a;
+    --accent: #ffb35c;
+    --ok: #7fd49a;
+    --warn: #f0c060;
+    --bad: #ef7d6d;
+    --glow: 255, 179, 92;
+    --glow-a: .0;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    display: flex; justify-content: center;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(60vmax 50vmax at 50% 22%, rgba(var(--glow), calc(var(--glow-a) * .22)), transparent 70%);
+    transition: background .6s;
+  }
+  main { width: 100%; max-width: 440px; padding: 20px 16px 40px; position: relative; }
+
+  header { display: flex; align-items: center; gap: 10px; }
+  header h1 { font: 600 18px/1.2 "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif; margin: 0; flex: 1; letter-spacing: .01em; }
+  .pill { font-size: 12px; padding: 4px 10px; border-radius: 99px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .pill.ok i { background: var(--ok); } .pill.warn i { background: var(--warn); } .pill.bad i { background: var(--bad); }
+  .icon-btn { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+  .icon-btn:hover { background: var(--panel-2); }
+
+  .orb-wrap { display: grid; place-items: center; padding: 34px 0 26px; }
+  .orb {
+    width: 190px; height: 190px; border-radius: 50%; border: none; cursor: pointer; position: relative;
+    background: radial-gradient(circle at 50% 42%, rgba(var(--glow), calc(.35 + var(--glow-a) * .65)), rgba(var(--glow), calc(var(--glow-a) * .55)) 60%, #2a2724 100%);
+    box-shadow: 0 0 calc(10px + 70px * var(--glow-a)) rgba(var(--glow), calc(var(--glow-a) * .7)), inset 0 -10px 30px rgba(0,0,0,.35);
+    transition: box-shadow .5s, background .5s, transform .15s;
+  }
+  .orb.off { background: radial-gradient(circle at 50% 40%, #3a3631, #24221f 70%); box-shadow: inset 0 -10px 30px rgba(0,0,0,.4); }
+  .orb:active { transform: scale(.97); }
+  .orb span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 600; letter-spacing: .14em; font-size: 13px; color: rgba(0,0,0,.55); }
+  .orb.off span { color: var(--muted); }
+  .orb:disabled { cursor: progress; }
+  .sub { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; min-height: 1.4em; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 9px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  .seg button.active { background: var(--panel-2); color: var(--text); box-shadow: 0 1px 0 rgba(255,255,255,.04) inset; }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-top: 14px; }
+  .row { margin: 4px 0 18px; } .row:last-child { margin-bottom: 4px; }
+  .row label { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 9px; }
+  .row label b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; border-radius: 99px; background: var(--track, linear-gradient(90deg, #3a3631, #f1ece4)); outline: none; margin: 0; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; border: 3px solid var(--bg); box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 2px 6px rgba(0,0,0,.5); cursor: grab; }
+  input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent); }
+  #temp { --track: linear-gradient(90deg, #ff9d3b, #ffe2b8 50%, #dbe8ff); }
+  #hue  { --track: linear-gradient(90deg, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00); }
+
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-top: 2px; }
+  .swatches button { aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .swatches button:hover { border-color: var(--text); }
+
+  .hidden { display: none !important; }
+
+  /* setup drawer */
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 10; }
+  .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 11; overflow-y: auto; padding: 20px 18px 40px; }
+  .drawer h2 { font-size: 17px; margin: 0; flex: 1; }
+  .drawer h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 26px 0 10px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+  .btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--text); padding: 10px 14px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.primary { background: var(--accent); color: #1a1208; border-color: var(--accent); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .note { font-size: 13px; color: var(--muted); }
+  .note ol { padding-left: 18px; margin: 6px 0; } .note li { margin: 4px 0; }
+  .note code { background: var(--bg); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+  .checks { list-style: none; padding: 0; margin: 12px 0 0; font-size: 14px; }
+  .checks li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .checks li:first-child { border-top: 0; }
+  .checks .m { width: 18px; flex: none; text-align: center; font-weight: 700; }
+  .checks .y { color: var(--ok); } .checks .n { color: var(--bad); } .checks .q { color: var(--muted); }
+  .checks small { display: block; color: var(--muted); }
+  .banner { background: rgba(240,192,96,.1); border: 1px solid rgba(240,192,96,.35); color: var(--text); border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-top: 16px; }
+
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #2d1f1c; border: 1px solid #5a2f28; color: #ffd9d2; padding: 10px 14px; border-radius: 12px; font-size: 13px; max-width: min(92vw, 520px); z-index: 20; }
+  .toast.info { background: #1d2a21; border-color: #2f5a3b; color: #d4f5dc; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="title">LED</h1>
+    <span class="pill" id="conn"><i></i><span>Connecting…</span></span>
+    <button class="icon-btn" id="openSetup" title="Setup" aria-label="Setup">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <div id="setupBanner" class="banner hidden">
+    The app isn't connected to your LED yet. Open <b>Setup</b> (the gear) to finish connecting it.
+  </div>
+
+  <div class="orb-wrap">
+    <button class="orb off" id="orb" aria-label="Toggle power"><span id="orbLabel">OFF</span></button>
+    <div class="sub" id="sub"></div>
+  </div>
+
+  <div class="seg" role="tablist">
+    <button id="tabWhite" class="active" role="tab">White</button>
+    <button id="tabColour" role="tab">Colour</button>
+  </div>
+
+  <section class="card" id="whitePanel">
+    <div class="row">
+      <label for="wBright">Brightness <b id="wBrightV">100%</b></label>
+      <input type="range" id="wBright" min="1" max="100" value="100">
+    </div>
+    <div class="row" id="tempRow">
+      <label for="temp">Warmth <b id="tempV">Neutral</b></label>
+      <input type="range" id="temp" min="0" max="100" value="50">
+    </div>
+  </section>
+
+  <section class="card hidden" id="colourPanel">
+    <div class="row">
+      <label for="hue">Hue <b id="hueV">0°</b></label>
+      <input type="range" id="hue" min="0" max="360" value="0">
+    </div>
+    <div class="row">
+      <label for="sat">Saturation <b id="satV">100%</b></label>
+      <input type="range" id="sat" min="0" max="100" value="100">
+    </div>
+    <div class="row">
+      <label for="cBright">Brightness <b id="cBrightV">100%</b></label>
+      <input type="range" id="cBright" min="1" max="100" value="100">
+    </div>
+    <div class="row">
+      <label>Presets</label>
+      <div class="swatches" id="swatches"></div>
+    </div>
+  </section>
+</main>
+
+<div class="scrim hidden" id="scrim"></div>
+<aside class="drawer hidden" id="drawer" aria-label="Setup">
+  <div style="display:flex;align-items:center;gap:10px">
+    <h2>Setup</h2>
+    <button class="icon-btn" id="closeSetup" aria-label="Close">✕</button>
+  </div>
+
+  <h3>Connection check</h3>
+  <p class="note">Looks for the LED on your network and tests each way of reaching it. Takes up to 20 seconds.</p>
+  <button class="btn" id="runCheck">Run check</button>
+  <ul class="checks" id="checks"></ul>
+
+  <h3>Tuya Cloud</h3>
+  <div class="note">
+    Needed once to get the LED's local key, and used for control whenever the LAN route is blocked.
+    <ol>
+      <li>Sign up free at <code>iot.tuya.com</code>, then go to <b>Cloud → Development → Create Cloud Project</b> (choose "Smart Home" and your data centre).</li>
+      <li>In the project, open <b>Devices → Link App Account → Add App Account</b> and scan the QR code with the Smart Life / Tuya Smart app (Me → scan icon).</li>
+      <li>Copy the <b>Access ID</b> and <b>Access Secret</b> from the project's Overview page into the fields below.</li>
+    </ol>
+  </div>
+  <div class="field">
+    <label for="cRegion">Data centre</label>
+    <select id="cRegion">
+      <option value="us">Western America (us)</option>
+      <option value="us-e">Eastern America (us-e)</option>
+      <option value="eu">Central Europe (eu)</option>
+      <option value="eu-w">Western Europe (eu-w)</option>
+      <option value="in">India (in)</option>
+      <option value="cn">China (cn)</option>
+    </select>
+  </div>
+  <div class="field"><label for="cKey">Access ID</label><input id="cKey" autocomplete="off" spellcheck="false"></div>
+  <div class="field"><label for="cSecret">Access Secret</label><input id="cSecret" type="password" autocomplete="off"></div>
+  <div class="btns">
+    <button class="btn primary" id="saveCloud">Save &amp; get local key</button>
+  </div>
+
+  <h3>Device</h3>
+  <div class="field"><label for="dId">Device ID</label><input id="dId" spellcheck="false"></div>
+  <div class="grid2">
+    <div class="field"><label for="dIp">IP address</label><input id="dIp" spellcheck="false"></div>
+    <div class="field"><label for="dVer">Protocol</label>
+      <select id="dVer"><option>3.5</option><option>3.4</option><option>3.3</option><option>3.1</option></select>
+    </div>
+  </div>
+  <div class="field"><label for="dKey">Local key</label><input id="dKey" type="password" autocomplete="off" spellcheck="false"></div>
+  <div class="field">
+    <label for="connMode">Connect via</label>
+    <select id="connMode">
+      <option value="auto">Automatic (LAN first, cloud as backup)</option>
+      <option value="local">LAN only</option>
+      <option value="cloud">Tuya Cloud only</option>
+    </select>
+  </div>
+  <div class="btns"><button class="btn primary" id="saveDevice">Save</button></div>
+</aside>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const state = { on: false, mode: 'white', brightness: 100, temp: 50, h: 0, s: 100, v: 100, caps: { colour: true, temp: true } };
+let busy = 0, lastSent = 0, cfg = null;
+let confirmed = { ...state }; // last state the LED actually reported; restored when a command fails
+
+// ---------- API
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  return r.json();
+}
+
+function toast(msg, kind) {
+  const t = $('toast');
+  t.textContent = msg; t.className = 'toast' + (kind === 'info' ? ' info' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('hidden'), kind === 'info' ? 3000 : 7000);
+}
+
+function setConn(kind, text) {
+  $('conn').className = 'pill ' + kind;
+  $('conn').querySelector('span').textContent = text;
+}
+
+// ---------- rendering
+function hsvToRgb(h, s, v) {
+  s /= 100; v /= 100;
+  const f = n => { const k = (n + h / 60) % 6; return v - v * s * Math.max(Math.min(k, 4 - k, 1), 0); };
+  return [f(5), f(3), f(1)].map(x => Math.round(x * 255));
+}
+function tempToRgb(t) { // 0 warm .. 100 cool
+  const warm = [255, 157, 59], mid = [255, 226, 184], cool = [219, 232, 255];
+  const [a, b, k] = t < 50 ? [warm, mid, t / 50] : [mid, cool, (t - 50) / 50];
+  return a.map((x, i) => Math.round(x + (b[i] - x) * k));
+}
+function warmthLabel(t) { return t < 20 ? 'Warm' : t < 42 ? 'Soft' : t <= 58 ? 'Neutral' : t < 80 ? 'Daylight' : 'Cool'; }
+
+function render() {
+  const colour = state.mode === 'colour';
+  const rgb = colour ? hsvToRgb(state.h, Math.max(state.s, 8), 100) : tempToRgb(state.temp);
+  const level = colour ? state.v : state.brightness;
+  document.documentElement.style.setProperty('--glow', rgb.join(','));
+  document.documentElement.style.setProperty('--glow-a', state.on ? (0.25 + 0.75 * level / 100).toFixed(2) : 0);
+  $('orb').classList.toggle('off', !state.on);
+  $('orbLabel').textContent = state.on ? 'ON' : 'OFF';
+  $('sub').textContent = state.on ? (colour ? `Colour · ${state.v}%` : `${warmthLabel(state.temp)} white · ${state.brightness}%`) : 'Tap to turn on';
+
+  $('tabWhite').classList.toggle('active', !colour);
+  $('tabColour').classList.toggle('active', colour);
+  $('whitePanel').classList.toggle('hidden', colour);
+  $('colourPanel').classList.toggle('hidden', !colour);
+  $('tabColour').classList.toggle('hidden', !state.caps.colour);
+  $('tempRow').classList.toggle('hidden', !state.caps.temp);
+
+  if (!render.dragging) {
+    $('wBright').value = state.brightness; $('temp').value = state.temp;
+    $('hue').value = state.h; $('sat').value = state.s; $('cBright').value = state.v;
+  }
+  $('wBrightV').textContent = $('wBright').value + '%';
+  $('tempV').textContent = warmthLabel(+$('temp').value);
+  $('hueV').textContent = $('hue').value + '°';
+  $('satV').textContent = $('sat').value + '%';
+  $('cBrightV').textContent = $('cBright').value + '%';
+  $('sat').style.setProperty('--track', `linear-gradient(90deg, #fff, rgb(${hsvToRgb(+$('hue').value, 100, 100)}))`);
+  $('cBright').style.setProperty('--track', `linear-gradient(90deg, #111, rgb(${hsvToRgb(+$('hue').value, +$('sat').value, 100)}))`);
+}
+
+// ---------- state polling
+async function refresh(quiet) {
+  if (busy || Date.now() - lastSent < 2500) return;
+  try {
+    const r = await api('/api/state');
+    if (r.ok) {
+      Object.assign(state, r);
+      confirmed = { ...state };
+      setConn('ok', r.via === 'cloud' ? 'Via Tuya Cloud' : 'Local network');
+      $('setupBanner').classList.add('hidden');
+      render();
+    } else {
+      setConn(r.needs_setup ? 'warn' : 'bad', r.needs_setup ? 'Needs setup' : 'Unreachable');
+      $('setupBanner').classList.toggle('hidden', !r.needs_setup);
+      if (!quiet && !r.needs_setup) toast(r.error);
+    }
+  } catch (e) {
+    setConn('bad', 'App stopped');
+    if (!quiet) toast('Lost contact with the app. Is led_app.py still running?');
+  }
+}
+
+// ---------- commands (throttled while dragging)
+let pending = null, inflight = false;
+function send(cmd) { pending = cmd; lastSent = Date.now(); if (!inflight) flush(); }
+async function flush() {
+  if (!pending) return;
+  const cmd = pending; pending = null; inflight = true; busy++;
+  try {
+    const r = await api('/api/command', cmd);
+    if (r.ok) { setConn('ok', r.via === 'cloud' ? 'Via Tuya Cloud' : 'Local network'); confirmed = { ...state }; }
+    else { toast(r.error); if (!pending) { Object.assign(state, confirmed); render(); } }
+  } catch (e) {
+    toast('Lost contact with the app. Is led_app.py still running?');
+    if (!pending) { Object.assign(state, confirmed); render(); }
+  }
+  busy--; inflight = false; lastSent = Date.now();
+  if (pending) setTimeout(flush, 120);
+}
+
+const sendWhite = () => send({ action: 'white', brightness: state.brightness, temp: state.temp });
+const sendColour = () => send({ action: 'colour', h: state.h, s: state.s, v: state.v });
+
+$('orb').onclick = async () => {
+  state.on = !state.on; render();
+  send({ action: 'power', on: state.on });
+};
+$('tabWhite').onclick = () => { state.mode = 'white'; state.on = true; render(); sendWhite(); };
+$('tabColour').onclick = () => { state.mode = 'colour'; state.on = true; render(); sendColour(); };
+
+function bindSlider(id, key, sender) {
+  const el = $(id);
+  el.addEventListener('pointerdown', () => render.dragging = true);
+  el.addEventListener('input', () => { state[key] = +el.value; state.on = true; render(); sender(); });
+  el.addEventListener('change', () => { render.dragging = false; state[key] = +el.value; sender(); });
+}
+bindSlider('wBright', 'brightness', sendWhite);
+bindSlider('temp', 'temp', sendWhite);
+bindSlider('hue', 'h', sendColour);
+bindSlider('sat', 's', sendColour);
+bindSlider('cBright', 'v', sendColour);
+
+const presets = [[0,100],[28,100],[50,100],[120,100],[175,90],[220,100],[275,85],[320,80]];
+presets.forEach(([h, s]) => {
+  const b = document.createElement('button');
+  b.style.background = `rgb(${hsvToRgb(h, s, 100)})`;
+  b.setAttribute('aria-label', `Hue ${h}`);
+  b.onclick = () => { Object.assign(state, { h, s, mode: 'colour', on: true }); render(); sendColour(); };
+  $('swatches').appendChild(b);
+});
+
+// ---------- setup drawer
+function openSetup(open) {
+  $('drawer').classList.toggle('hidden', !open);
+  $('scrim').classList.toggle('hidden', !open);
+}
+$('openSetup').onclick = () => openSetup(true);
+$('closeSetup').onclick = $('scrim').onclick = () => openSetup(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') openSetup(false); });
+
+function fillConfig(c) {
+  cfg = c;
+  $('title').textContent = c.device.name || 'LED';
+  $('dId').value = c.device.id; $('dIp').value = c.device.ip; $('dVer').value = c.device.version;
+  $('dKey').value = ''; $('dKey').placeholder = c.device.key_set ? 'Saved (leave blank to keep)' : 'Not set';
+  $('cRegion').value = c.cloud.region;
+  $('cKey').value = ''; $('cKey').placeholder = c.cloud.api_key_set ? 'Saved (leave blank to keep)' : '';
+  $('cSecret').value = ''; $('cSecret').placeholder = c.cloud.api_secret_set ? 'Saved (leave blank to keep)' : '';
+  $('connMode').value = c.connection;
+}
+
+async function withBtn(btn, label, fn) {
+  const old = btn.textContent; btn.disabled = true; btn.textContent = label;
+  try { await fn(); } finally { btn.disabled = false; btn.textContent = old; }
+}
+
+$('saveDevice').onclick = e => withBtn(e.target, 'Saving…', async () => {
+  fillConfig(await api('/api/config', {
+    connection: $('connMode').value,
+    device: { id: $('dId').value, ip: $('dIp').value, version: $('dVer').value, key: $('dKey').value },
+  }));
+  toast('Saved.', 'info'); refresh();
+});
+
+$('saveCloud').onclick = e => withBtn(e.target, 'Connecting to Tuya…', async () => {
+  fillConfig(await api('/api/config', { cloud: { region: $('cRegion').value, api_key: $('cKey').value, api_secret: $('cSecret').value } }));
+  const r = await api('/api/fetch-key', {});
+  if (!r.ok) return toast(r.error);
+  fillConfig(await api('/api/config'));
+  toast(r.key_found ? `Connected to "${r.name || 'LED'}" and saved its local key.` : 'Connected, but Tuya returned no local key.', 'info');
+  refresh();
+});
+
+$('runCheck').onclick = e => withBtn(e.target, 'Checking…', async () => {
+  const list = $('checks'); list.innerHTML = '';
+  const r = await api('/api/diagnostics');
+  if (!r.ok) return toast(r.error);
+  const item = (ok, title, detail) => {
+    const li = document.createElement('li');
+    const m = ok === true ? ['y', '✓'] : ok === false ? ['n', '✕'] : ['q', '–'];
+    li.innerHTML = `<span class="m ${m[0]}">${m[1]}</span><div></div>`;
+    li.lastChild.textContent = title;
+    if (detail) { const s = document.createElement('small'); s.textContent = detail; li.lastChild.appendChild(s); }
+    list.appendChild(li);
+  };
+  item(r.broadcast_seen, 'LED found on your network',
+       r.broadcast_seen ? `Broadcasting from ${r.broadcast_ip}${r.ip_updated ? ' (IP updated)' : ''}` : 'No broadcast heard. Is it powered on and on the same Wi-Fi?');
+  item(r.tcp_reachable, 'PC can reach the LED directly',
+       r.tcp_reachable ? `Port 6668 on ${r.configured_ip} is open` :
+       'Blocked. Turn off "AP isolation" / "client isolation" in your router, or move the LED off a guest network. Cloud control still works without this.');
+  item(r.has_local_key || null, 'Local key saved', r.has_local_key ? '' : 'Get it with "Save & get local key" above.');
+  if ('local_ok' in r) item(r.local_ok, 'LAN control works', r.local_error);
+  item(r.has_cloud_creds ? ('cloud_ok' in r ? r.cloud_ok : null) : null, 'Tuya Cloud control works',
+       r.has_cloud_creds ? r.cloud_error : 'Add your Tuya Cloud Access ID and Secret.');
+  fillConfig(await api('/api/config'));
+  refresh(true);
+});
+
+// ---------- boot
+(async () => {
+  try { fillConfig(await api('/api/config')); } catch (e) {}
+  render();
+  await refresh(true);
+  if (cfg && !cfg.device.key_set && !cfg.cloud.api_key_set) openSetup(true);
+  setInterval(() => { if (!document.hidden) refresh(true); }, 10000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+# Build output
+bin/
+obj/
+build/
+dist/
+*.exe
+*.dll
+*.pdb
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editors
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local settings and secrets (device keys, cloud credentials, AC keys) never go in the repo
+config.json
+*.local.json
+tinytuya.json
+devices.json
+snapshot.json
+.env
+*.log

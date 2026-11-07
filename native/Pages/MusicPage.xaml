@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="LedControl.Pages.MusicPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Required">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="{StaticResource PageMaxWidth}" Padding="{StaticResource PagePadding}" Spacing="4">
+            <TextBlock Text="Music sync" Style="{StaticResource PageTitle}" Margin="0,0,0,6" />
+            <TextBlock Style="{StaticResource SecondaryText}" Margin="0,0,0,20"
+                       Text="Makes the light react to whatever your PC is playing, like a music visualizer. It streams colours to the light over your home network." />
+
+            <!-- Visualizer + start/stop -->
+            <Border Style="{StaticResource Card}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="200" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border CornerRadius="8,8,0,0">
+                        <Border.Background>
+                            <RadialGradientBrush Center="0.5,1" RadiusX="0.7" RadiusY="1.1" GradientOrigin="0.5,1">
+                                <GradientStop x:Name="VisGlowInner" Offset="0" Color="#00FFFFFF" />
+                                <GradientStop x:Name="VisGlowOuter" Offset="1" Color="#00FFFFFF" />
+                            </RadialGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <Grid x:Name="BarsGrid" Margin="28,28,28,0" ColumnSpacing="5" />
+                    <TextBlock x:Name="IdleHint" Text="Press Start, then play some music" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Style="{StaticResource SecondaryText}" />
+
+                    <Grid Grid.Row="1" Padding="20,14" ColumnSpacing="16"
+                          BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="StartButton" Style="{StaticResource AccentButtonStyle}" MinWidth="120" Click="Start_Click"
+                                AutomationProperties.Name="Start music sync">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon x:Name="StartIcon" Glyph="&#xE768;" FontSize="14" />
+                                <TextBlock x:Name="StartText" Text="Start" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <ProgressRing x:Name="MusicBusy" Width="16" Height="16" IsActive="False" />
+                            <TextBlock x:Name="MusicStatus" Text="Not running" TextWrapping="Wrap" VerticalAlignment="Center"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <Border x:Name="ColourChip" Grid.Column="2" Width="22" Height="22" CornerRadius="11"
+                                BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1"
+                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                ToolTipService.ToolTip="Colour being sent to the light" />
+                    </Grid>
+                </Grid>
+            </Border>
+            <InfoBar x:Name="MusicError" Severity="Error" IsClosable="True" Title="Music sync" Margin="0,4,0,0" />
+
+            <TextBlock Text="Effect" Style="{StaticResource SectionHeader}" />
+            <tk:SettingsCard x:Name="StyleCard" Header="Style">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE790;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ComboBox x:Name="StyleBox" MinWidth="180" SelectionChanged="Style_Changed" AutomationProperties.Name="Style">
+                    <ComboBoxItem Content="Pulse" Tag="pulse" />
+                    <ComboBoxItem Content="Spectrum" Tag="spectrum" />
+                    <ComboBoxItem Content="Beat" Tag="beat" />
+                    <ComboBoxItem Content="Party" Tag="party" />
+                </ComboBox>
+            </tk:SettingsCard>
+            <tk:SettingsCard Header="Sensitivity" Description="How strongly the light reacts to the sound">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE9E9;" />
+                </tk:SettingsCard.HeaderIcon>
+                <Slider x:Name="SensSlider" Width="240" Minimum="0" Maximum="100" StepFrequency="1"
+                        ValueChanged="Sens_Changed" AutomationProperties.Name="Sensitivity" />
+            </tk:SettingsCard>
+            <tk:SettingsCard x:Name="PulseCard" Header="Pulse colour" Description="The colour the Pulse style uses">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xEB42;" />
+                </tk:SettingsCard.HeaderIcon>
+                <StackPanel x:Name="PulseColours" Orientation="Horizontal" Spacing="6" />
+            </tk:SettingsCard>
+
+            <TextBlock Text="Audio" Style="{StaticResource SectionHeader}" />
+            <tk:SettingsCard Header="Listen to" Description="System audio follows your default speakers or headphones">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE767;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ComboBox x:Name="SourceBox" MinWidth="240" MaxWidth="320" SelectionChanged="Source_Changed"
+                          AutomationProperties.Name="Audio source" />
+            </tk:SettingsCard>
+            <tk:SettingsCard Header="Update speed" Description="Colour changes per second. Lower it if the light lags behind.">
+                <tk:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE916;" />
+                </tk:SettingsCard.HeaderIcon>
+                <ComboBox x:Name="SpeedBox" MinWidth="180" SelectionChanged="Speed_Changed" AutomationProperties.Name="Update speed" />
+            </tk:SettingsCard>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

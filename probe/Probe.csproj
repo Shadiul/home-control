@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>MSB3539</NoWarn>
+    <BaseIntermediateOutputPath>$(LOCALAPPDATA)\Temp\LEDControlBuild\probe\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(LOCALAPPDATA)\Temp\LEDControlBuild\probe\bin\</BaseOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\native\Core\*.cs" />
+    <Compile Include="..\native\Music\Analyzer.cs" />
+  </ItemGroup>
+</Project>
