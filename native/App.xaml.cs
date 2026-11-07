@@ -30,6 +30,8 @@ public partial class App : Application
         this.args = args;
         InitializeComponent();
         Config = AppConfig.Load();
+        if (Config.LoadError != null) Log($"Couldn't read the settings file {AppInfo.ConfigPath}: {Config.LoadError}");
+        else if (!Config.LoadedFromFile) Log($"No settings file at {AppInfo.ConfigPath}: starting from the defaults.");
         Controller = new LightController(Config);
         Music = new MusicEngine(Controller);
         ApplyMusicPrefs();
