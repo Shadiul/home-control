@@ -8,24 +8,16 @@
     xmlns:local="using:LedControl.Controls"
     RequestedTheme="Dark">
     <Grid CornerRadius="16" BorderBrush="#14FFFFFF" BorderThickness="1">
-        <Border>
+        <Border x:Name="BaseLayer">
             <Border.Background>
-                <LinearGradientBrush x:Name="BaseBrush" StartPoint="0,0" EndPoint="0,1">
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                     <GradientStop Offset="0" Color="#3A3B3F" />
                     <GradientStop Offset="0.55" Color="#26272B" />
                     <GradientStop Offset="1" Color="#1C1D20" />
                 </LinearGradientBrush>
             </Border.Background>
         </Border>
-        <Border>
-            <Border.Background>
-                <RadialGradientBrush x:Name="GlowBrush" Center="0.5,0.2" GradientOrigin="0.5,0.2" RadiusX="0.9" RadiusY="0.45">
-                    <GradientStop Offset="0" Color="#00000000" />
-                    <GradientStop Offset="0.55" Color="#00000000" />
-                    <GradientStop Offset="0.8" Color="#00000000" />
-                </RadialGradientBrush>
-            </Border.Background>
-        </Border>
+        <Border x:Name="GlowLayer" />
 
         <Grid Padding="16,16,16,14" RowSpacing="6">
             <Grid.RowDefinitions>

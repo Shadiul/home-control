@@ -13,8 +13,7 @@ public sealed partial class HouseArt : UserControl
     {
         Moon.Visibility = Stars.Visibility = night ? Visibility.Visible : Visibility.Collapsed;
         Sun.Visibility = night ? Visibility.Collapsed : Visibility.Visible;
-        GlowInner.Color = Paint.WithAlpha(lightColour, lightOn ? 0.25 + 0.5 * level : 0);
-        GlowOuter.Color = Paint.WithAlpha(lightColour, 0);
+        Glow.Fill = lightOn ? Draw.Radial((0, Paint.WithAlpha(lightColour, 0.25 + 0.5 * level)), (1, Paint.WithAlpha(lightColour, 0))) : null;
         Window.Fill = new SolidColorBrush(lightOn ? lightColour : Paint.Hex(0x22375E));
         AcAir.Visibility = acOn ? Visibility.Visible : Visibility.Collapsed;
     }

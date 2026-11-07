@@ -20,8 +20,14 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     a ring dial for the target temperature. The music sync card has a speaker and a ring of bars that follow
     the music, around a play/stop button. Drag a ring or use − and +; **Open ›** goes to the device's page.
 - Sliders everywhere are thick, with a tall pill-shaped handle.
-- **Light:** power switch, live preview (click it to toggle), White and Colour modes, brightness, warmth,
-  colour swatches, custom colour picker, and scenes (Bright, Reading, Relax, Night, Movie, Party).
+- **Light:** the light's name and connection under the title, and the power switch on the right.
+  - **Preview:** a realistic bulb that glows in the light's colour, brighter and wider the higher the brightness.
+    Click it to turn the light on or off.
+  - **Controls**, in one card: White or Colour, brightness, and either warmth (on a warm-to-cool track) or
+    colour swatches with a **Custom…** colour picker.
+  - **Scenes:** illustrated cards (Bright, Reading, Relax, Night, Movie, Party), each a small room lit the way the
+    scene lights it. The one the light currently matches is outlined.
+
   Changes made elsewhere, such as in the Smart Life phone app, show up straight away: the light reports them.
 - **Music sync:** the light reacts to whatever the PC plays.
   - Styles:

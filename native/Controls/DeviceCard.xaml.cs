@@ -70,16 +70,10 @@ public sealed partial class DeviceCard : UserControl
     /// <summary>The scene behind the card: a vertical gradient, and a glow near the top (null for none).</summary>
     public void SetScene(Color top, Color middle, Color bottom, Color? glow, double glowY = 0.2, double glowRx = 0.9, double glowRy = 0.45)
     {
-        BaseBrush.GradientStops[0].Color = top;
-        BaseBrush.GradientStops[1].Color = middle;
-        BaseBrush.GradientStops[2].Color = bottom;
-        var g = glow ?? Color.FromArgb(0, 0, 0, 0);
-        GlowBrush.Center = GlowBrush.GradientOrigin = new Windows.Foundation.Point(0.5, glowY);
-        GlowBrush.RadiusX = glowRx;
-        GlowBrush.RadiusY = glowRy;
-        GlowBrush.GradientStops[0].Color = g;
-        GlowBrush.GradientStops[1].Color = Paint.WithAlpha(g, g.A / 255.0 * 0.25);
-        GlowBrush.GradientStops[2].Color = Paint.WithAlpha(g, 0);
+        BaseLayer.Background = Draw.Vertical((0, top), (0.55, middle), (1, bottom));
+        GlowLayer.Background = glow is { } g
+            ? Draw.Radial(new(0.5, glowY), glowRx, glowRy, (0, g), (0.55, Paint.WithAlpha(g, g.A / 255.0 * 0.25)), (0.8, Paint.WithAlpha(g, 0)))
+            : null;
     }
 
     void Power_Toggled(object sender, RoutedEventArgs e)

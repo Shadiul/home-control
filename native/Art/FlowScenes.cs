@@ -32,6 +32,19 @@ static class Draw
         return e;
     }
 
+    /// <summary>
+    /// A new radial gradient. (WinUI doesn't redraw a radial gradient whose stops change after it's first shown,
+    /// so changing colours means making a new one.)
+    /// </summary>
+    public static RadialGradientBrush Radial(Point center, double rx, double ry, params (double Offset, Color Colour)[] stops)
+    {
+        var b = new RadialGradientBrush { Center = center, GradientOrigin = center, RadiusX = rx, RadiusY = ry };
+        foreach (var (o, c) in stops) b.GradientStops.Add(new GradientStop { Offset = o, Color = c });
+        return b;
+    }
+
+    public static RadialGradientBrush Radial(params (double Offset, Color Colour)[] stops) => Radial(new(0.5, 0.5), 0.5, 0.5, stops);
+
     public static LinearGradientBrush Vertical(params (double Offset, Color Colour)[] stops) => Gradient(new(0, 0), new(0, 1), stops);
 
     public static LinearGradientBrush Gradient(Point from, Point to, params (double Offset, Color Colour)[] stops)
@@ -51,7 +64,6 @@ static class Draw
 public sealed partial class FanScene : Canvas
 {
     readonly Ellipse glow = new();
-    readonly RadialGradientBrush glowBrush = new();
     readonly Canvas winds = new();
     readonly Ellipse housing = new() { Width = 88, Height = 88, StrokeThickness = 3 };
     readonly Ellipse inner = new() { Width = 76, Height = 76, StrokeThickness = 1, StrokeDashArray = [2, 4] };
@@ -68,9 +80,6 @@ public sealed partial class FanScene : Canvas
     {
         Width = ArcSelector.StageWidth;
         Height = ArcSelector.StageHeight;
-        glow.Fill = glowBrush;
-        glowBrush.GradientStops.Add(new GradientStop { Offset = 0 });
-        glowBrush.GradientStops.Add(new GradientStop { Offset = 1 });
         Children.Add(glow);
         Children.Add(winds);
         Children.Add(Draw.At(housing, 96, 78));
@@ -109,8 +118,7 @@ public sealed partial class FanScene : Canvas
         double gr = 52 + n * 7;
         glow.Width = glow.Height = gr * 2;
         Draw.At(glow, 140 - gr, 122 - gr);
-        glowBrush.GradientStops[0].Color = Paint.WithAlpha(p.Accent, 0.35);
-        glowBrush.GradientStops[1].Color = Paint.WithAlpha(p.Accent, 0);
+        glow.Fill = Draw.Radial((0, Paint.WithAlpha(p.Accent, 0.35)), (1, Paint.WithAlpha(p.Accent, 0)));
         glow.Opacity = on ? Math.Min(1, 0.35 + n * 0.13) : 0;
 
         // Rebuild the moving parts only when what they show changes.
