@@ -55,6 +55,24 @@ static class Draw
     }
 
     public static readonly Color Stroke = Paint.Hex(0xCDD2D7), Outlet = Paint.Hex(0x2B3138), Blade = Paint.Hex(0xE4E7EA);
+
+    /// <summary>A 24 × 24 line icon shown at <paramref name="size"/>; colour it with <see cref="Tint"/>.</summary>
+    public static (Viewbox Box, Path[] Strokes) LineIcon(string data, double size, double width = 1.7)
+    {
+        var canvas = new Canvas { Width = 24, Height = 24 };
+        var paths = data.Split('|').Select(d => new Path
+        {
+            Data = Geo(d), StrokeThickness = width, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+        }).ToArray();
+        foreach (var p in paths) canvas.Children.Add(p);
+        return (new Viewbox { Width = size, Height = size, Child = canvas }, paths);
+    }
+
+    public static void Tint(Path[] strokes, Color c)
+    {
+        foreach (var p in strokes) p.Stroke = new SolidColorBrush(c);
+    }
 }
 
 /// <summary>

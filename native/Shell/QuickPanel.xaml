@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The quick panel that opens above the notification area: a tab per device, a picture of it lit by its
+     state with a big power button, its main controls, and a footer to open the app or Settings. -->
+<Window
+    x:Class="LedControl.Shell.QuickPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Home Control">
+
+    <Window.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="Root">
+        <Grid.Resources>
+            <ResourceDictionary>
+                <ResourceDictionary.ThemeDictionaries>
+                    <ResourceDictionary x:Key="Default">
+                        <x:Double x:Key="SliderTrackThemeHeight">12</x:Double>
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Light">
+                        <x:Double x:Key="SliderTrackThemeHeight">12</x:Double>
+                    </ResourceDictionary>
+                    <ResourceDictionary x:Key="Dark">
+                        <x:Double x:Key="SliderTrackThemeHeight">12</x:Double>
+                    </ResourceDictionary>
+                </ResourceDictionary.ThemeDictionaries>
+            </ResourceDictionary>
+        </Grid.Resources>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="46" />
+        </Grid.RowDefinitions>
+
+        <!-- One tab per device -->
+        <Grid x:Name="Tabs" Padding="12,12,12,8" ColumnSpacing="4" AutomationProperties.Name="Devices" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Padding="14,4,14,14" Spacing="12">
+                <!-- The device, lit by its current state; name and state along the bottom; big power button -->
+                <Grid x:Name="Stage" Height="196" CornerRadius="14">
+                    <Border x:Name="StageBase" />
+                    <Border x:Name="StageGlow" />
+                    <ContentPresenter x:Name="ArtHost" />
+                    <StackPanel VerticalAlignment="Bottom" Padding="14,28,14,10">
+                        <StackPanel.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Offset="0" Color="#00000000" />
+                                <GradientStop Offset="1" Color="#9E000000" />
+                            </LinearGradientBrush>
+                        </StackPanel.Background>
+                        <TextBlock x:Name="StageName" FontSize="15" FontWeight="SemiBold" Foreground="White" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="StageStatus" FontSize="12" Foreground="#E6FFFFFF" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <ToggleButton x:Name="PowerButton" Width="44" Height="44" CornerRadius="22" Padding="0" RequestedTheme="Light"
+                                  HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,12,0" Click="Power_Click">
+                        <FontIcon Glyph="&#xE7E8;" FontSize="18" />
+                    </ToggleButton>
+                </Grid>
+
+                <!-- Air conditioners: the target temperature with − and + either side -->
+                <Grid x:Name="TempRow" Padding="4,6" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="TempDown" Width="48" Height="48" CornerRadius="24" Padding="0" Click="TempDown_Click"
+                            AutomationProperties.Name="Lower temperature" ToolTipService.ToolTip="Lower temperature">
+                        <FontIcon Glyph="&#xE738;" FontSize="16" />
+                    </Button>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock x:Name="TempValue" FontFamily="Segoe UI Variable Display" FontSize="44" FontWeight="SemiBold"
+                                   HorizontalAlignment="Center" LineHeight="46" />
+                        <TextBlock x:Name="TempCaption" FontSize="12" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <Button x:Name="TempUp" Grid.Column="2" Width="48" Height="48" CornerRadius="24" Padding="0" Click="TempUp_Click"
+                            AutomationProperties.Name="Raise temperature" ToolTipService.ToolTip="Raise temperature">
+                        <FontIcon Glyph="&#xE710;" FontSize="16" />
+                    </Button>
+                </Grid>
+
+                <!-- The device's main slider -->
+                <StackPanel x:Name="SliderBox">
+                    <Grid>
+                        <TextBlock x:Name="SliderLabel" FontSize="13" />
+                        <TextBlock x:Name="SliderValue" FontSize="13" HorizontalAlignment="Right" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                    <Slider x:Name="MainSlider" StepFrequency="1" ValueChanged="MainSlider_Changed" />
+                </StackPanel>
+
+                <!-- Colours, modes or styles, depending on the device -->
+                <StackPanel Spacing="6">
+                    <TextBlock x:Name="ChipsTitle" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Grid x:Name="Chips" ColumnSpacing="6" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer: how the devices are doing, and buttons to open the app or Settings -->
+        <Grid Grid.Row="2" Padding="16,0,8,0" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+              Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Ellipse x:Name="FooterDot" Width="8" Height="8" />
+                <TextBlock x:Name="FooterText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" Click="Open_Click"
+                        AutomationProperties.Name="Open Home Control" ToolTipService.ToolTip="Open Home Control">
+                    <FontIcon Glyph="&#xE8A7;" FontSize="16" />
+                </Button>
+                <Button Width="36" Height="36" Padding="0" Background="Transparent" BorderThickness="0" Click="Settings_Click"
+                        AutomationProperties.Name="Settings" ToolTipService.ToolTip="Settings">
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

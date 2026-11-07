@@ -12,7 +12,7 @@ sealed class RelayCommand(Action run) : ICommand
     public void Execute(object? parameter) => run();
 }
 
-/// <summary>Notification-area icon: click shows/hides the window, right-click gives quick actions.</summary>
+/// <summary>Notification-area icon: click opens the quick panel, right-click gives a menu of quick actions.</summary>
 sealed class Tray : IDisposable
 {
     readonly TaskbarIcon icon;
@@ -52,7 +52,7 @@ sealed class Tray : IDisposable
             ContextMenuMode = ContextMenuMode.PopupMenu,
             ContextFlyout = menu,
             NoLeftClickDelay = true,
-            LeftClickCommand = OnUi(app.ToggleWindow),
+            LeftClickCommand = OnUi(app.ToggleQuickPanel),
         };
         icon.ForceCreate(false); // false: don't put the app in Windows' efficiency mode (music sync needs the CPU)
 

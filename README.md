@@ -62,8 +62,16 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
   details with **Save and get local key**, app theme, "Keep running in the notification area" and "Start with Windows".
   **Find air conditioners** looks for Gree units, pairs with new ones and updates addresses that changed;
   **Paired air conditioners** lists them, with Remove.
-- **Notification area icon:** click to open the window. Right-click for on/off, scenes, music sync, a menu per air
-  conditioner (on/off, "Cool to 24 °C", More settings) and Quit.
+- **Notification area icon:** click to open the **quick panel** just above the taskbar. It has a tab per device
+  (the light, each air conditioner, music sync), each with a picture of the device lit by its state and a big
+  power button:
+  - **Light:** brightness, and colour chips (Warm, Cool, Red, Green, Blue, Purple).
+  - **Air conditioners:** the target temperature with − and +, fan speed, and mode chips plus Fan auto.
+  - **Music sync:** sensitivity and the four styles; the ring round the speaker follows the music.
+
+  The footer says whether every device is connected and has buttons to open the app or Settings. The panel
+  closes when you click anywhere else. Right-click the icon for a menu: on/off, scenes, music sync, a menu per
+  air conditioner (on/off, "Cool to 24 °C", More settings) and Quit.
 - Only one copy runs at a time; opening it again brings the window forward.
 
 Uninstall from **Settings > Apps > Installed apps > Home Control**. Your settings are kept.

@@ -97,6 +97,15 @@ public partial class App : Application
 
     public void OnRedirectedActivation() => UI?.TryEnqueue(() => Window?.ShowAndFocus());
 
+    QuickPanel? quickPanel;
+
+    /// <summary>The notification-area icon was clicked: open or close the quick panel.</summary>
+    public void ToggleQuickPanel()
+    {
+        quickPanel ??= new QuickPanel();
+        quickPanel.Toggle();
+    }
+
     public void ToggleWindow()
     {
         if (Window.AppWindow.IsVisible && Window.IsForeground) Window.AppWindow.Hide();

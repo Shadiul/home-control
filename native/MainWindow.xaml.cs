@@ -199,6 +199,9 @@ public sealed partial class MainWindow : Window
         ShowPage("ac");
         await Task.Delay(1200);
         await SaveAsync(Root, Path.Combine(dir, "ac-narrow.png"));
+
+        // The quick panel, every tab.
+        await new QuickPanel().CaptureAsync(dir, SaveAsync);
     }
 
     static async Task SaveAsync(UIElement element, string path)
