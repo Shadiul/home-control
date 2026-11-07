@@ -127,18 +127,40 @@ public sealed class AppConfig
     JsonObject root = new();
     static readonly object FileGate = new();
 
+    /// <summary>Why the settings file couldn't be read at start-up, or null. Saving is refused while it's set.</summary>
+    public string? LoadError { get; private set; }
+
+    /// <summary>The settings came from the file (false on a first run, before anything is saved).</summary>
+    public bool LoadedFromFile { get; private set; }
+
     public static AppConfig Load()
     {
         var cfg = new AppConfig();
-        try
+        // A file that's briefly busy (antivirus, a sync tool, another copy saving) gets a few more tries.
+        for (int attempt = 0; attempt < 5; attempt++)
         {
-            if (File.Exists(AppInfo.ConfigPath) &&
-                JsonNode.Parse(File.ReadAllText(AppInfo.ConfigPath)) is JsonObject r)
-                cfg.root = r;
-        }
-        catch (Exception)
-        {
-            // Unreadable file: start from defaults, it gets rewritten on the next save.
+            try
+            {
+                if (!File.Exists(AppInfo.ConfigPath)) break; // first run: start from defaults
+                if (JsonNode.Parse(File.ReadAllText(AppInfo.ConfigPath)) is JsonObject r)
+                {
+                    cfg.root = r;
+                    cfg.LoadedFromFile = true;
+                    cfg.LoadError = null;
+                }
+                else cfg.LoadError = "the file isn't a settings object";
+                break;
+            }
+            catch (System.Text.Json.JsonException e)
+            {
+                cfg.LoadError = "the file isn't valid JSON: " + e.Message;
+                break;
+            }
+            catch (Exception e)
+            {
+                cfg.LoadError = $"{e.GetType().Name}: {e.Message}";
+                Thread.Sleep(200);
+            }
         }
         var r0 = cfg.root;
         cfg.Connection = OneOf(Str(r0, "connection", "auto"), "auto", "local", "cloud");
@@ -190,6 +212,14 @@ public sealed class AppConfig
 
     public void Save()
     {
+        // Never replace a settings file this copy couldn't read: it would lose the keys in it.
+        if (LoadError != null)
+            throw new InvalidOperationException(
+                $"Not saved: the settings file couldn't be read when Home Control started ({LoadError}). Quit Home Control and open it again.");
+        if (!LoadedFromFile && File.Exists(AppInfo.ConfigPath))
+            throw new InvalidOperationException(
+                "Not saved: a settings file appeared after Home Control started without one. Quit Home Control and open it again.");
+
         root["connection"] = Connection;
         var d = Section(root, "device");
         d["id"] = Device.Id; d["ip"] = Device.Ip; d["version"] = Device.Version;
@@ -219,6 +249,7 @@ public sealed class AppConfig
             File.WriteAllText(tmp, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
             File.Move(tmp, AppInfo.ConfigPath, overwrite: true); // atomic replace: never half a file
         }
+        LoadedFromFile = true;
     }
 
     static JsonObject Section(JsonObject parent, string name)
