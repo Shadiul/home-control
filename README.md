@@ -1,15 +1,15 @@
 # Home Control
 
-Control your Tuya Wi-Fi light and your Gree air conditioners from this PC.
+Control your Tuya Wi-Fi light, your Gree air conditioners and the PC's own RGB lighting from this PC.
 
-**Home Control 2.4** (called LED Control before 2.2) is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10),
+**Home Control 2.5** (called LED Control before 2.2) is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10),
 the same UI framework Windows 11's own apps use. It's in the Start menu. Python isn't needed any more:
 the light's encrypted local protocol (Tuya 3.5), the Tuya Cloud API, the Gree air conditioner protocol and music
 analysis are all in C#.
 
 ## Using it
 
-Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and Settings (the gear on the right).
+Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, **PC lighting**, and Settings (the gear on the right).
 
 - **Home:** a banner with the time of day and a drawing of the house: its window glows with the light, and the
   AC blows air while any unit runs. It also shows the room temperatures and how many devices are connected.
@@ -19,7 +19,8 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     and two fill sliders: **Brightness** (amber) and **Warmth** (on a warm-to-cool track, which also tints the
     bulb, the card and the house window). Each air conditioner card shows the unit, with air flowing while it
     runs and a ring dial for the target temperature. The music sync card has a speaker and a play/stop button
-    on a soft violet glow that breathes while sync runs. **Open ›** goes to the device's page.
+    on a soft violet glow that breathes while sync runs. The PC lighting card shows the case lit in its colour,
+    with a brightness slider and six colours. **Open ›** goes to the device's page.
 - **Colour swatches** look the same everywhere: a soft rounded tile holding a round swatch; the picked one gets a
   ring and a glow in its own colour.
 - **Fill sliders** (Home, Music sync and the quick panel): the whole rounded pill is the slider. Drag or click
@@ -66,6 +67,15 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
 
   Changes show at once and are confirmed by reading the unit back; the page refreshes every 20 seconds, so
   changes from the remote show up too.
+- **PC lighting:** the PC's own RGB lighting, controlled directly over USB (no OpenRGB, SignalRGB, iCUE or CAM).
+  - **Preview:** a drawing of the case (front fans, rear fan, pump head, LED strip) lit in the chosen colour. Under
+    it, while the app holds the Corsair cooler: the coolant temperature and the pump and fan duty.
+  - **Controls:** brightness, three whites and eleven colours plus **Custom**, and **Follow** tiles: **Music sync**
+    (the PC lights show music sync's colours while it runs) and **Room light** (they match the room light).
+  - **Devices:** each controller and whether it's connected, and **Let Home Control run the PC's lights**. Turning
+    that off hands every controller back to its own lighting and cooling.
+  - Another RGB app (SignalRGB, OpenRGB, iCUE, NZXT CAM, MSI Center) running at the same time makes the lights
+    flicker; the page warns when one is running.
 - **Settings:**
   - **Devices:** a row per device with its address and whether it's connected. Open the light's row for its
     ID, IP, protocol version and local key; open an air conditioner's row to rename or remove it.
@@ -76,13 +86,14 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
   - **App:** theme, "Keep running next to the clock" and "Start with Windows".
   - **About:** the version, and a button to open the settings folder.
 - **Notification area icon:** click to open the **quick panel** just above the taskbar. It has a tab per device
-  (the light, each air conditioner, music sync), each with a picture of the device lit by its state, its name
+  (the light, each air conditioner, music sync, the PC), each with a picture of the device lit by its state, its name
   and status, and a big power button. Below it, on a soft wash of the device's colour:
   - **Light:** brightness and warmth sliders, 8 colours and 6 scenes.
   - **Air conditioners:** the target temperature with big − and +, the fan slider with **Auto**, mode tiles in
     their own colours, and Turbo, Quiet, Sleep, Swing up/down, Swing left/right and Display.
   - **Music sync:** sensitivity, the four styles, update speed, the Pulse colour and what to listen to. The
     speaker glows while sync runs.
+  - **PC:** brightness, 8 colours, and the Follow tiles for music sync and the room light.
 
   The footer says whether every device is connected and has buttons to open the app or Settings. The panel
   closes when you click anywhere else. Right-click the icon for a menu: on/off, scenes, music sync, a menu per
@@ -124,6 +135,28 @@ To undo: `netsh interface ipv4 delete neighbors "Ethernet" 192.168.0.170` (and `
 new address, its entry needs the new IP before **Find air conditioners** can see it. Reserving the addresses in the
 router (Tenda: Advanced Settings > DHCP Reservation) avoids this.
 
+### PC lighting
+
+The app talks to three USB HID lighting controllers itself, using the protocols documented by liquidctl and
+OpenRGB. No admin rights or drivers are needed.
+
+- **NZXT Smart Device V2** (1E71:200F, built into the case): two lighting channels, here two Aer RGB 2 140 mm
+  fans and a HUE 2 300 mm LED strip. 64-byte output reports, colours in G, R, B order. Only the lighting commands
+  are sent, never the fan commands. The accessory query can take about 2.5 s to answer.
+- **MSI Mystic Light** (1462:7C37, X570-A PRO): the 185-byte feature report 0x52. The app only writes static
+  colours, always starting from the board's own state, never sets the save flag (so nothing is written to the
+  board's flash), and puts back what it found when it stops. Nothing is plugged into its headers at the moment.
+- **Corsair iCUE Commander CORE** (1B1C:0C1C, the Elite Capellix hub; firmware 2.6.201 takes 1024-byte packets):
+  the pump head (29 LEDs) and the fan on port 1 (8 LEDs). It only takes custom colours in software mode, and in
+  software mode it stops running its own pump and fan curves. So while the app holds it, the app runs the
+  cooling: the pump at 100% and the fans from the coolant temperature (30% up to 30 °C, rising to 100% at 40 °C,
+  and 100% if the temperature can't be read), sent every second. On any error, when you turn PC lighting off,
+  and when the app quits, the hub goes straight back to hardware mode and its own curves. If the app were killed,
+  the hub goes back by itself after about 30 seconds without messages.
+
+The RAM's lighting isn't controlled: it needs a kernel driver, and a wrong write could damage the modules'
+settings chip. `Probe.exe rgb list | nzxt | msi | corsair | all` tests each controller from the command line.
+
 ## Building
 
 Needs the .NET 10 SDK. It's installed per user in `%LOCALAPPDATA%\Microsoft\dotnet-sdk` (no Visual Studio needed).
@@ -149,7 +182,8 @@ old name (`LedControl`, `LEDControlBuild`); they aren't visible in the app.
 - `native/`: the app.
   - `Core/`: light protocol (`TuyaProtocol.cs`, `TuyaLink.cs`), cloud API (`TuyaCloud.cs`), routing between them
     (`LightController.cs`), state model, network discovery, and settings. Air conditioners: `Gree.cs` (encryption,
-    scan, pairing, status and commands) and `AcState.cs`.
+    scan, pairing, status and commands) and `AcState.cs`. PC lighting: `Core/Rgb/` (`Hid.cs`, one file per
+    controller, and `PcLighting.cs`, which runs them together).
   - `Music/`: WASAPI audio capture (NAudio), FFT analysis and beat detection, and the streaming engine.
   - `Pages/`: the Light, Music sync, Air conditioners and Settings pages (XAML). `AirflowIcons.cs` holds the
     airflow arrows, drawn by a small script as filled shapes so they take the button's text colour.
