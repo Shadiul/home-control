@@ -5,6 +5,11 @@ if (args.Length > 0 && args[0] == "gree")
     await LedControl.GreeProbe.RunAsync(args);
     return;
 }
+if (args.Length > 0 && args[0] == "rgb")
+{
+    LedControl.RgbProbe.Run(args);
+    return;
+}
 
 // 8 s of synthetic music at 48 kHz: a kick drum every 128 BPM beat, hi-hats, and a bass line.
 const int sr = 48000;

@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\native\Core\*.cs" />
+    <Compile Include="..\native\Core\Rgb\*.cs" />
     <Compile Include="..\native\Music\Analyzer.cs" />
   </ItemGroup>
 </Project>
