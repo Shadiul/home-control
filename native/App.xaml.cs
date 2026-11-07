@@ -65,7 +65,11 @@ public partial class App : Application
         string? selfTest = ArgValue("--self-test"), shots = ArgValue("--screenshots");
         if (shots != null)
         {
-            _ = Window.CaptureScreenshotsAsync(shots).ContinueWith(_ => UI.TryEnqueue(Exit));
+            _ = Window.CaptureScreenshotsAsync(shots).ContinueWith(t =>
+            {
+                if (t.Exception != null) Log("Screenshots failed: " + t.Exception);
+                UI.TryEnqueue(Exit);
+            });
             Session.Start();
             Acs.Start();
             return;
@@ -92,6 +96,15 @@ public partial class App : Application
     }
 
     public void OnRedirectedActivation() => UI?.TryEnqueue(() => Window?.ShowAndFocus());
+
+    QuickPanel? quickPanel;
+
+    /// <summary>The notification-area icon was clicked: open or close the quick panel.</summary>
+    public void ToggleQuickPanel()
+    {
+        quickPanel ??= new QuickPanel();
+        quickPanel.Toggle();
+    }
 
     public void ToggleWindow()
     {

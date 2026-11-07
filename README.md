@@ -9,34 +9,74 @@ analysis are all in C#.
 
 ## Using it
 
-- **Light:** power switch, live preview (click it to toggle), White and Colour modes, brightness, warmth,
-  colour swatches, custom colour picker, and scenes (Bright, Reading, Relax, Night, Movie, Party).
+Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and Settings (the gear on the right).
+
+- **Home:** a banner with the time of day and a drawing of the house: its window glows with the light, and the
+  AC blows air while any unit runs. It also shows the room temperatures and how many devices are connected.
+  - **Scenes** set everything at once: **Cool down** (ACs to 24 °C with Turbo), **Movie** (light dim blue,
+    running ACs on Quiet), **Sleep** (night light, ACs on Sleep at 27 °C) and **All off**.
+  - **Device cards:** each one is a dark scene lit by its device. The light card has a bulb in the light's colour,
+    with a ring dial for brightness. Each air conditioner card shows the unit, with air flowing while it runs and
+    a ring dial for the target temperature. The music sync card has a speaker and a ring of bars that follow
+    the music, around a play/stop button. Drag a ring or use − and +; **Open ›** goes to the device's page.
+- Sliders everywhere are thick, with a tall pill-shaped handle.
+- **Light:** the light's name and connection under the title, and the power switch on the right.
+  - **Preview:** a realistic bulb that glows in the light's colour, brighter and wider the higher the brightness.
+    Click it to turn the light on or off.
+  - **Controls**, in one card: White or Colour, brightness, and either warmth (on a warm-to-cool track) or
+    colour swatches with a **Custom…** colour picker.
+  - **Scenes:** illustrated cards (Bright, Reading, Relax, Night, Movie, Party), each a small room lit the way the
+    scene lights it. The one the light currently matches is outlined.
+
   Changes made elsewhere, such as in the Smart Life phone app, show up straight away: the light reports them.
-- **Music sync:** the light reacts to whatever the PC plays.
-  - Styles:
+- **Music sync:** the light reacts to whatever the PC plays. **Start** / **Stop** is beside the title.
+  - **Now:** a live spectrum, coloured by the style, and a dot showing the light's colour at that moment.
+  - **Style**, as four cards:
     - **Pulse:** one colour breathing with the volume.
     - **Spectrum:** bass shows red, mids green, treble blue.
     - **Beat:** a new colour and a flash on every beat.
     - **Party:** colours spin with the energy.
-  - Settings: sensitivity, audio source (system audio or any input, such as Stereo Mix), and update speed
-    (10 to 25 per second).
+  - **Options:** sensitivity, what to listen to (system audio or any input, such as Stereo Mix), update speed
+    (10 to 25 a second) and the Pulse colour.
   - It only works over the home network. **Stop** puts the light back how it was; changing the light on the
     Light page also stops it.
-- **Air conditioners:** one tab per unit. Power, target temperature (16 to 30 °C) with the room temperature,
-  mode (Auto, Cool, Dry, Fan, Heat), fan speed, airflow direction, and Turbo, Quiet, Sleep, display light,
-  Health (ionizer) and X-Fan.
-  - **Airflow:** "Up and down" has five buttons with arrows showing where the air goes, from straight ahead to
-    straight down (seen from the side). "Left and right" has five from far left to far right (seen from above).
-    Each row has its own **Swing** toggle; turning it off goes back to the last direction you picked. The text
-    under each heading says what's set ("Fixed: halfway down", "Swinging", or "Automatic: the unit chooses"). The pencil next to the name renames a unit. Changes show at once and are
-  confirmed by reading the unit back; the page refreshes every 20 seconds, so changes from the remote show up too.
-- **Settings:** connection mode (Automatic, Home network only, Tuya Cloud only) and **Run check**, which tests
-  each route and fixes the IP address if the light moved. Also light details (ID, IP, local key), Tuya Cloud
-  details with **Save and get local key**, app theme, "Keep running in the notification area" and "Start with Windows".
-  **Find air conditioners** looks for Gree units, pairs with new ones and updates addresses that changed;
-  **Paired air conditioners** lists them, with Remove.
-- **Notification area icon:** click to open the window. Right-click for on/off, scenes, music sync, a menu per air
-  conditioner (on/off, "Cool to 24 °C", More settings) and Quit.
+- **Climate:** one tab per air conditioner, with **Rename** beside the tabs.
+  - **Temperature:** a big ring dial (16 to 30 °C) with the target and − / + in the middle; drag the ring or use
+    the arrow keys. The room temperature and the power switch are underneath.
+  - **Mode:** a card per mode (Auto, Cool, Dry, Fan, Heat), each with its own colours and a short description.
+  - **Fan and airflow:** three panels, each a picture with its own arc slider:
+    - **Fan speed:** a fan whose rotor spins faster, and whose streams of air grow, at each step from Low to High.
+    - **Up and down:** the unit seen from the side on its wall, with the louvre flap and the air beam, from
+      straight ahead to straight down.
+    - **Left and right:** the unit seen from the front, from far left to far right.
+
+    Drag a handle or click a position. **Auto** lets the unit choose; **Swing** sweeps the whole range, and turning
+    it off goes back to the last direction you picked. The text under each title says what's set ("Fixed: halfway
+    down", "Swinging", "Automatic: the unit chooses").
+  - **More options:** tiles for Turbo, Quiet, Sleep, Display light, Health (ionizer) and X-Fan, each in its own
+    colour. Point at or tap the ⓘ to see what an option does. Turbo and Quiet switch each other off.
+
+  Changes show at once and are confirmed by reading the unit back; the page refreshes every 20 seconds, so
+  changes from the remote show up too.
+- **Settings:**
+  - **Devices:** a row per device with its address and whether it's connected. Open the light's row for its
+    ID, IP, protocol version and local key; open an air conditioner's row to rename or remove it.
+    **Check connections** tests each way of reaching the light and fixes its IP address if it moved.
+    **Find devices** looks for Gree air conditioners, pairs with new ones and updates addresses that changed.
+  - **Connection:** Automatic, Home network only or Tuya Cloud only, and the Tuya Cloud account, with
+    **Save and get local key**.
+  - **App:** theme, "Keep running next to the clock" and "Start with Windows".
+  - **About:** the version, and a button to open the settings folder.
+- **Notification area icon:** click to open the **quick panel** just above the taskbar. It has a tab per device
+  (the light, each air conditioner, music sync), each with a picture of the device lit by its state and a big
+  power button:
+  - **Light:** brightness, and colour chips (Warm, Cool, Red, Green, Blue, Purple).
+  - **Air conditioners:** the target temperature with − and +, fan speed, and mode chips plus Fan auto.
+  - **Music sync:** sensitivity and the four styles; the ring round the speaker follows the music.
+
+  The footer says whether every device is connected and has buttons to open the app or Settings. The panel
+  closes when you click anywhere else. Right-click the icon for a menu: on/off, scenes, music sync, a menu per
+  air conditioner (on/off, "Cool to 24 °C", More settings) and Quit.
 - Only one copy runs at a time; opening it again brings the window forward.
 
 Uninstall from **Settings > Apps > Installed apps > Home Control**. Your settings are kept.

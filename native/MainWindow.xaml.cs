@@ -49,7 +49,7 @@ public sealed partial class MainWindow : Window
             MusicBadge.Visibility = App.Instance.Session.MusicRunning ? Visibility.Visible : Visibility.Collapsed;
 
         ApplyTheme(App.Instance.Config.Theme);
-        Nav.SelectedItem = LightNav;
+        Nav.SelectedItem = HomeNav;
     }
 
     public bool IsForeground => GetForegroundWindow() == hwnd;
@@ -96,9 +96,10 @@ public sealed partial class MainWindow : Window
         Type page = args.IsSettingsSelected ? typeof(SettingsPage)
                   : ((args.SelectedItem as NavigationViewItem)?.Tag as string) switch
                   {
+                      "light" => typeof(LightPage),
                       "music" => typeof(MusicPage),
                       "ac" => typeof(AcPage),
-                      _ => typeof(LightPage),
+                      _ => typeof(HomePage),
                   };
         if (ContentFrame.CurrentSourcePageType != page)
             ContentFrame.Navigate(page, null, args.RecommendedNavigationTransitionInfo ?? new EntranceNavigationTransitionInfo());
@@ -109,9 +110,10 @@ public sealed partial class MainWindow : Window
         Nav.SelectedItem = tag switch
         {
             "settings" => Nav.SettingsItem,
+            "light" => LightNav,
             "music" => MusicNav,
             "ac" => AcNav,
-            _ => LightNav,
+            _ => HomeNav,
         };
     }
 
@@ -132,13 +134,21 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(-30000, -30000));
         Activate();
         await Task.Delay(2500);
+        // Units that don't answer get sample settings, so every part of the design shows up.
+        var samples = new[]
+        {
+            new Dictionary<string, int> { ["Pow"] = 1, ["Mod"] = 1, ["SetTem"] = 24, ["TemSen"] = 69, ["WdSpd"] = 3, ["SwUpDn"] = 4, ["SwingLfRig"] = 1, ["Tur"] = 1, ["Lig"] = 1 },
+            new Dictionary<string, int> { ["Pow"] = 0, ["Mod"] = 4, ["SetTem"] = 27, ["TemSen"] = 72, ["WdSpd"] = 0, ["SwUpDn"] = 0, ["SwingLfRig"] = 5, ["Quiet"] = 2, ["Health"] = 1 },
+        };
+        for (int i = 0; i < App.Instance!.Acs.Units.Count; i++)
+            if (App.Instance.Acs.Units[i].Shown == null) App.Instance.Acs.Units[i].Preview(new AcState(samples[i % samples.Length]));
         foreach (var theme in new[] { "light", "dark" })
         {
             ApplyTheme(theme);
             // Mica isn't captured by RenderTargetBitmap: paint its typical base colour instead.
             Root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 theme == "dark" ? Color.FromArgb(255, 0x20, 0x20, 0x20) : Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
-            foreach (var tag in new[] { "light", "music", "ac", "settings" })
+            foreach (var tag in new[] { "home", "light", "music", "ac", "settings" })
             {
                 ShowPage(tag);
                 await Task.Delay(900);
@@ -174,12 +184,24 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32((int)(600 * WinIntegration.GetDpiForWindow(hwnd) / 96.0), AppWindow.Size.Height));
         ApplyTheme("light");
         Root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
+        ShowPage("home");
+        await Task.Delay(1200);
+        await SaveAsync(Root, Path.Combine(dir, "home-narrow.png"));
+        if (ContentFrame.Content is Page { Content: ScrollViewer { Content: Panel narrowBody } })
+        {
+            narrowBody.Background = Root.Background;
+            await SaveAsync(narrowBody, Path.Combine(dir, "home-narrow-full.png"));
+            narrowBody.Background = null;
+        }
         ShowPage("light");
         await Task.Delay(1200);
         await SaveAsync(Root, Path.Combine(dir, "light-narrow.png"));
         ShowPage("ac");
         await Task.Delay(1200);
         await SaveAsync(Root, Path.Combine(dir, "ac-narrow.png"));
+
+        // The quick panel, every tab.
+        await new QuickPanel().CaptureAsync(dir, SaveAsync);
     }
 
     static async Task SaveAsync(UIElement element, string path)
