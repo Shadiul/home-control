@@ -29,14 +29,15 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     scene lights it. The one the light currently matches is outlined.
 
   Changes made elsewhere, such as in the Smart Life phone app, show up straight away: the light reports them.
-- **Music sync:** the light reacts to whatever the PC plays.
-  - Styles:
+- **Music sync:** the light reacts to whatever the PC plays. **Start** / **Stop** is beside the title.
+  - **Now:** a live spectrum, coloured by the style, and a dot showing the light's colour at that moment.
+  - **Style**, as four cards:
     - **Pulse:** one colour breathing with the volume.
     - **Spectrum:** bass shows red, mids green, treble blue.
     - **Beat:** a new colour and a flash on every beat.
     - **Party:** colours spin with the energy.
-  - Settings: sensitivity, audio source (system audio or any input, such as Stereo Mix), and update speed
-    (10 to 25 per second).
+  - **Options:** sensitivity, what to listen to (system audio or any input, such as Stereo Mix), update speed
+    (10 to 25 a second) and the Pulse colour.
   - It only works over the home network. **Stop** puts the light back how it was; changing the light on the
     Light page also stops it.
 - **Climate:** one tab per air conditioner, with **Rename** beside the tabs.
@@ -57,11 +58,15 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
 
   Changes show at once and are confirmed by reading the unit back; the page refreshes every 20 seconds, so
   changes from the remote show up too.
-- **Settings:** connection mode (Automatic, Home network only, Tuya Cloud only) and **Run check**, which tests
-  each route and fixes the IP address if the light moved. Also light details (ID, IP, local key), Tuya Cloud
-  details with **Save and get local key**, app theme, "Keep running in the notification area" and "Start with Windows".
-  **Find air conditioners** looks for Gree units, pairs with new ones and updates addresses that changed;
-  **Paired air conditioners** lists them, with Remove.
+- **Settings:**
+  - **Devices:** a row per device with its address and whether it's connected. Open the light's row for its
+    ID, IP, protocol version and local key; open an air conditioner's row to rename or remove it.
+    **Check connections** tests each way of reaching the light and fixes its IP address if it moved.
+    **Find devices** looks for Gree air conditioners, pairs with new ones and updates addresses that changed.
+  - **Connection:** Automatic, Home network only or Tuya Cloud only, and the Tuya Cloud account, with
+    **Save and get local key**.
+  - **App:** theme, "Keep running next to the clock" and "Start with Windows".
+  - **About:** the version, and a button to open the settings folder.
 - **Notification area icon:** click to open the **quick panel** just above the taskbar. It has a tab per device
   (the light, each air conditioner, music sync), each with a picture of the device lit by its state and a big
   power button:
