@@ -92,6 +92,12 @@ public sealed class LightSession
     public async Task RefreshAsync()
     {
         if (MusicRunning || pumping || pending != null) return;
+        if (controller.Config.LoadError is { } loadError)
+        {
+            SetStatus("error", $"Couldn't read the settings file ({loadError}). Quit Home Control and open it again.");
+            Changed?.Invoke();
+            return;
+        }
         if (!controller.IsConfigured)
         {
             SetStatus("setup", "Not set up yet. Open Settings to connect your light.");
