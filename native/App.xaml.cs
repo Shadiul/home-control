@@ -65,7 +65,11 @@ public partial class App : Application
         string? selfTest = ArgValue("--self-test"), shots = ArgValue("--screenshots");
         if (shots != null)
         {
-            _ = Window.CaptureScreenshotsAsync(shots).ContinueWith(_ => UI.TryEnqueue(Exit));
+            _ = Window.CaptureScreenshotsAsync(shots).ContinueWith(t =>
+            {
+                if (t.Exception != null) Log("Screenshots failed: " + t.Exception);
+                UI.TryEnqueue(Exit);
+            });
             Session.Start();
             Acs.Start();
             return;

@@ -62,6 +62,15 @@ public sealed class AcUnit
 
     public void TogglePower() => Set(("Pow", Shown?.On == true ? 0 : 1));
 
+    /// <summary>Screenshot mode only: shows a sample state when the unit can't be reached, to check the design.</summary>
+    internal void Preview(AcState state)
+    {
+        Shown = Confirmed = state;
+        StatusKind = "ok";
+        StatusText = "Preview";
+        Changed?.Invoke();
+    }
+
     async Task PumpAsync()
     {
         pumping = true;

@@ -134,6 +134,14 @@ public sealed partial class MainWindow : Window
         AppWindow.Move(new PointInt32(-30000, -30000));
         Activate();
         await Task.Delay(2500);
+        // Units that don't answer get sample settings, so every part of the design shows up.
+        var samples = new[]
+        {
+            new Dictionary<string, int> { ["Pow"] = 1, ["Mod"] = 1, ["SetTem"] = 24, ["TemSen"] = 69, ["WdSpd"] = 3, ["SwUpDn"] = 4, ["SwingLfRig"] = 1, ["Tur"] = 1, ["Lig"] = 1 },
+            new Dictionary<string, int> { ["Pow"] = 0, ["Mod"] = 4, ["SetTem"] = 27, ["TemSen"] = 72, ["WdSpd"] = 0, ["SwUpDn"] = 0, ["SwingLfRig"] = 5, ["Quiet"] = 2, ["Health"] = 1 },
+        };
+        for (int i = 0; i < App.Instance!.Acs.Units.Count; i++)
+            if (App.Instance.Acs.Units[i].Shown == null) App.Instance.Acs.Units[i].Preview(new AcState(samples[i % samples.Length]));
         foreach (var theme in new[] { "light", "dark" })
         {
             ApplyTheme(theme);

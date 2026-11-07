@@ -1,119 +1,434 @@
+using LedControl.Art;
+using LedControl.Controls;
 using LedControl.Core;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
-using CommunityToolkit.WinUI.Controls;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 using Windows.UI;
+using Path = Microsoft.UI.Xaml.Shapes.Path;
 
 namespace LedControl.Pages;
 
+/// <summary>
+/// Climate: one tab per air conditioner. A big temperature dial with the room temperature and power,
+/// mode cards beside it, three fan and airflow panels (each a picture with its own arc slider),
+/// and option tiles with tooltips.
+/// </summary>
 public sealed partial class AcPage : Page
 {
-    const string FanPath =
-        "M8,8 C6.08,5.28 5.92,1.76 8.48,1.28 C11.04,0.8 11.52,4.32 8,8 Z M8,8 C11.32,7.7 14.44,9.32 13.58,11.78 " +
-        "C12.72,14.23 9.43,12.89 8,8 Z M8,8 C6.6,11.02 3.64,12.92 1.94,10.94 C0.24,8.97 3.05,6.79 8,8 Z " +
-        "M6.8,8 A1.2,1.2 0 1 0 9.2,8 A1.2,1.2 0 1 0 6.8,8 Z";
+    // ------------------------------------------------------------ fixed content
 
-    public const string SnowPath =
-        "F1 M8.62,8 L8.62,0.8 L7.38,0.8 L7.38,8 Z M8.4,3.22 L6.41,1.55 L5.61,2.51 L7.6,4.18 Z M8.4,4.18 L10.39,2.51 L9.59,1.55 L7.6,3.22 Z M8.31,8.54 L14.55,4.94 L13.92,3.86 L7.69,7.46 Z M12.34,5.96 L12.79,3.4 L11.56,3.18 L11.11,5.74 Z M11.51,6.44 L13.95,7.33 L14.38,6.15 L11.94,5.26 Z M7.69,8.54 L13.92,12.14 L14.55,11.06 L8.31,7.46 Z M11.94,10.74 L14.38,9.85 L13.95,8.67 L11.51,9.56 Z M11.11,10.26 L11.56,12.82 L12.79,12.6 L12.34,10.04 Z M7.38,8 L7.38,15.2 L8.62,15.2 L8.62,8 Z M7.6,12.78 L9.59,14.45 L10.39,13.49 L8.4,11.82 Z M7.6,11.82 L5.61,13.49 L6.41,14.45 L8.4,12.78 Z M7.69,7.46 L1.45,11.06 L2.08,12.14 L8.31,8.54 Z M3.66,10.04 L3.21,12.6 L4.44,12.82 L4.89,10.26 Z M4.49,9.56 L2.05,8.67 L1.62,9.85 L4.06,10.74 Z M8.31,7.46 L2.08,3.86 L1.45,4.94 L7.69,8.54 Z M4.06,5.26 L1.62,6.15 L2.05,7.33 L4.49,6.44 Z M4.89,5.74 L4.44,3.18 L3.21,3.4 L3.66,5.96 Z";
-
-    static readonly Color[] ModeColours =
+    // Mode: name, icon (24 × 24, stroked), description, deep and light colour.
+    static readonly (string Icon, string Desc, uint Deep, uint Light)[] Modes =
     [
-        Color.FromArgb(255, 0x7B, 0x5C, 0xD6), // auto
-        Color.FromArgb(255, 0x1F, 0x7A, 0xE8), // cool
-        Color.FromArgb(255, 0x0E, 0x95, 0x95), // dry
-        Color.FromArgb(255, 0x4E, 0x8A, 0x2E), // fan
-        Color.FromArgb(255, 0xE0, 0x5A, 0x12), // heat
+        ("M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6", "Picks cool or heat for you", 0x6A4FE0, 0xA992FF),
+        ("M12 2.5v19M3.8 7.3l16.4 9.4M20.2 7.3 3.8 16.7M9.5 4.5 12 6l2.5-1.5M9.5 19.5 12 18l2.5 1.5", "Cools to the target", 0x1569C7, 0x5CB8FF),
+        ("M12 3.5s6 6.4 6 10.9a6 6 0 0 1-12 0c0-4.5 6-10.9 6-10.9z", "Removes humidity", 0x0B8578, 0x4FD1BF),
+        ("M12 12c-1-4 0-8 3-8.5s3 4.5-3 8.5zM12 12c4-1 8 0 8.5 3s-4.5 3-8.5-3zM12 12c1 4 0 8-3 8.5s-3-4.5 3-8.5zM12 12c-4 1-8 0-8.5-3s4.5-3 8.5 3z", "Moves air, no cooling", 0x2F8A45, 0x8CD27A),
+        ("M12 3c.8 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.4-4.9.4 1.9 1.4 2.9 2.4 2.9-.2-3 .2-5.4.2-8z", "Warms to the target", 0xC94A0C, 0xFFA35C),
     ];
 
-    // Louvre positions: Gree values 2-6 are fixed positions, 1 is a full swing, 0 lets the unit decide.
+    // Options: Gree key, name, what the tile says when off, icon, tooltip, colour.
+    static readonly (string Key, string Name, string Idle, string Icon, string Info, uint Colour)[] Extras =
+    [
+        ("Tur", "Turbo", "Full power for a while", "M13 2 4 14h7l-1 8 9-12h-7z",
+         "Runs the fan and compressor at full power for a while, so the room reaches your temperature faster. Works in Cool and Heat only. Turning it on switches Quiet off.", 0xD9480F),
+        ("Quiet", "Quiet", "Lower fan noise", "M4 9h4l5-4v14l-5-4H4zM17 9.5l4 5M21 9.5l-4 5",
+         "Slows the fan to make the unit quieter, for bedrooms or calls. The room cools or heats more slowly. Turning it on switches Turbo off.", 0x4C5BD4),
+        ("SwhSlp", "Sleep", "Gentler overnight", "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+         "For the night. In Cool it lets the temperature rise a little over the first hours, and in Heat it lets it drop a little, so you stay comfortable and use less power.", 0x7048C2),
+        ("Lig", "Display light", "Unit display", "M3 5h18v11H3zM9 20h6M12 16v4",
+         "Turns the temperature display on the indoor unit on or off, for example in a dark bedroom. The air conditioner keeps working either way.", 0x0B8578),
+        ("Health", "Health", "Ionizer", "M5 19c0-8.5 6-14 15-14 0 9-5.5 15-14 15M5 19l7-7",
+         "Turns on the built-in ionizer to help freshen the air. Only some units have one; on others this does nothing.", 0x2F8A45),
+        ("Blo", "X-Fan", "Dries the coil", "M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8",
+         "After you turn the unit off in Cool or Dry, the fan keeps running briefly to dry the inside, which helps prevent mould and musty smells.", 0x1569C7),
+    ];
+
+    const string AutoIcon = "M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6";
+    const string FanIcon = "M12 12c-1-4 0-8 3-8.5s3 4.5-3 8.5zM12 12c4-1 8 0 8.5 3s-4.5 3-8.5-3zM12 12c1 4 0 8-3 8.5s-3-4.5 3-8.5zM12 12c-4 1-8 0-8.5-3s4.5-3 8.5 3z";
+    const string UpDownIcon = "M8 4v16M4.5 7.5 8 4l3.5 3.5M4.5 16.5 8 20l3.5-3.5M14 8h6M14 12h6M14 16h6";
+    const string LeftRightIcon = "M4 8h16M7.5 4.5 4 8l3.5 3.5M16.5 4.5 20 8l-3.5 3.5M8 14v6M12 14v6M16 14v6";
+
+    // Louvres: Gree values 2-6 are fixed positions, 1 is a full swing, 0 lets the unit decide.
     // Up and down also has 7-11, a swing over part of the range (set from the remote).
     static readonly string[] VerticalNames = ["Straight ahead", "Slightly down", "Halfway down", "Mostly down", "Straight down"];
     static readonly string[] HorizontalNames = ["Far left", "Left", "Centre", "Right", "Far right"];
     static readonly string[] PartSwingNames = ["lower part", "lower middle", "middle", "upper middle", "upper part"];
-
-    sealed record Louvre(string Key, ToggleButton[] Positions, ToggleButton Swing, SettingsCard Card, string[] Names);
-    readonly Louvre vertical, horizontal;
-    readonly Dictionary<string, int> lastPosition = []; // per unit and louvre, for turning swing off
-
-    readonly List<SelectorBarItem> modeItems = [];
-    readonly Dictionary<string, ToggleSwitch> extras;
-    AcUnit? unit;
-    bool syncing;
+    static readonly string[] FanLevelNames = ["Low", "Medium-low", "Medium", "Medium-high", "High"];
 
     static AcHub Hub => App.Instance!.Acs;
+
+    // ------------------------------------------------------------ parts built in code
+
+    sealed class IconParts
+    {
+        public required Viewbox Box;
+        public required Path[] Strokes;
+        public Path? Fill;
+    }
+
+    sealed class ModeCard
+    {
+        public required Button Button;
+        public required Grid Face;
+        public required Border Tint, Badge;
+        public required IconParts Icon, Mark;
+        public required TextBlock Name, Desc;
+    }
+
+    sealed class FlowPanel
+    {
+        public required ArcSelector Arc;
+        public required TextBlock Status;
+        public required Border Well;
+        public required IconParts Icon;
+        public required ToggleButton Auto;
+        public required IconParts AutoIcon;
+        public ToggleButton? Swing;
+        public IconParts? SwingIcon;
+    }
+
+    sealed class ExtraTile
+    {
+        public required int Index;
+        public required Button Button;
+        public required Grid Face;
+        public required Border Wash, Badge, SwitchTrack;
+        public required Microsoft.UI.Xaml.Shapes.Ellipse SwitchKnob;
+        public required IconParts Icon;
+        public required TextBlock State;
+        public required Button Info;
+    }
+
+    readonly RadialDial dial = new()
+    {
+        Diameter = 280, Thickness = 16, KnobSize = new Size(18, 40), Minimum = AcState.MinTemp, Maximum = AcState.MaxTemp,
+        Step = 1, LargeStep = 3, TickCount = AcState.MaxTemp - AcState.MinTemp + 1, MinLabel = $"{AcState.MinTemp}°", MaxLabel = $"{AcState.MaxTemp}°",
+    };
+    readonly TextBlock dialCaption = new() { FontSize = 13, HorizontalAlignment = HorizontalAlignment.Center };
+    readonly TextBlock dialValue = new()
+    {
+        FontFamily = new FontFamily("Segoe UI Variable Display"), FontSize = 56, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+        HorizontalAlignment = HorizontalAlignment.Center, LineHeight = 56,
+    };
+    readonly Button minus, plus;
+    readonly List<ModeCard> modeCards = [];
+    readonly FlowPanel fanPanel, vPanel, hPanel;
+    readonly FanScene fanScene = new();
+    readonly SideUnitScene sideScene = new();
+    readonly FrontUnitScene frontScene = new();
+    readonly List<ExtraTile> tiles = [];
+
+    readonly Dictionary<string, int> lastPosition = []; // per unit and louvre, for turning swing off
+    readonly Dictionary<string, int> lastFan = [];       // per unit, the speed to go back to when Auto is turned off
+    readonly HashSet<string> errorDismissed = []; // units whose error the user closed (until they connect again)
+    AcUnit? unit;
+    bool syncing;
 
     public AcPage()
     {
         syncing = true; // controls raise change events while the XAML loads
         InitializeComponent();
-        for (int m = 0; m < AcState.ModeNames.Length; m++)
+
+        minus = RoundButton("", "Lower temperature", () => ChangeTemp(-1));
+        plus = RoundButton("", "Raise temperature", () => ChangeTemp(+1));
+        dial.Center = new StackPanel
         {
-            var item = new SelectorBarItem { Text = AcState.ModeNames[m], Icon = ModeIcon(m), Tag = m };
-            modeItems.Add(item);
-            ModeBar.Items.Add(item);
-        }
-        for (int i = 0; i < AcState.FanNames.Length; i++) FanBox.Items.Add(new ComboBoxItem { Content = AcState.FanNames[i], Tag = i });
-        VSwingIcon.Content = AirIcon(AirflowIcons.VerticalSwing, 22);
-        HSwingIcon.Content = AirIcon(AirflowIcons.HorizontalSwing, 22);
-        vertical = new Louvre("SwUpDn", MakePositions(VPositions, AirflowIcons.Vertical, VerticalNames, "Air direction: "),
-                              VSwingButton, VCard, VerticalNames);
-        horizontal = new Louvre("SwingLfRig", MakePositions(HPositions, AirflowIcons.Horizontal, HorizontalNames, "Air direction: "),
-                                HSwingButton, HCard, HorizontalNames);
-        VSwingButton.Tag = vertical;
-        HSwingButton.Tag = horizontal;
-        extras = new[] { TurboSwitch, QuietSwitch, SleepSwitch, LightSwitch, HealthSwitch, XFanSwitch }
-            .ToDictionary(s => (string)s.Tag, s => s);
+            Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center,
+            Children =
+            {
+                dialCaption, dialValue,
+                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 4, 0, 0),
+                                 HorizontalAlignment = HorizontalAlignment.Center, Children = { minus, plus } },
+            },
+        };
+        AutomationProperties.SetName(dial, "Target temperature");
+        dial.ValueChanged += v => unit?.Set(("SetTem", (int)v), ("TemUn", 0));
+        DialHost.Content = dial;
+
+        for (int m = 0; m < Modes.Length; m++) ModeGrid.Children.Add(BuildModeCard(m).Button);
+
+        fanPanel = BuildFlowPanel("Fan speed", FanIcon, new ArcSelector(fanScene, 140, 150, 100, [195, 232.5, 270, 307.5, 345], FanLevelNames,
+            ("Low", 34, 150), ("High", 246, 150), ArcSelector.Look.Amount, "Fan speed"), swing: null);
+        vPanel = BuildFlowPanel("Up and down", UpDownIcon, new ArcSelector(sideScene, 103, 88, 100, [0, 22.5, 45, 67.5, 90], VerticalNames,
+            ("Ahead", 236, 92), ("Down", 103, 210), ArcSelector.Look.Direction, "Up and down"),
+            swing: ("M3 3.5h8.5A2.5 2.5 0 0 1 14 6v1.2L12.6 9H3z", "M19.6 10.6A10 10 0 0 1 11 20.4", "M17.2 9.9 19.6 10.6l.9-2.3M13.3 21.6 11 20.4l1.5-2.1"));
+        hPanel = BuildFlowPanel("Left and right", LeftRightIcon, new ArcSelector(frontScene, 140, 72, 100, [160, 125, 90, 55, 20], HorizontalNames,
+            ("Left", 30, 132), ("Right", 250, 132), ArcSelector.Look.Direction, "Left and right"),
+            swing: ("M5 17.5h14a2 2 0 0 1 2 2V21H3v-1.5a2 2 0 0 1 2-2z", "M3.8 11.2A11 11 0 0 1 20.2 11.2", "M3.4 8.6 3.8 11.2l2.6-.5M20.6 8.6 20.2 11.2l-2.6-.5"));
+
+        fanPanel.Arc.Picked += i => SetFan(i + 1);
+        fanPanel.Auto.Click += (_, _) => ToggleFanAuto();
+        vPanel.Arc.Picked += i => unit?.Set(("SwUpDn", i + 2));
+        hPanel.Arc.Picked += i => unit?.Set(("SwingLfRig", i + 2));
+        vPanel.Auto.Click += (_, _) => unit?.Set(("SwUpDn", 0));
+        hPanel.Auto.Click += (_, _) => unit?.Set(("SwingLfRig", 0));
+        vPanel.Swing!.Click += (_, _) => ToggleSwing("SwUpDn");
+        hPanel.Swing!.Click += (_, _) => ToggleSwing("SwingLfRig");
+
+        for (int i = 0; i < Extras.Length; i++) ExtrasGrid.Children.Add(BuildTile(i));
         syncing = false;
 
+        ErrorBar.Closed += (_, _) =>
+        {
+            if (unit != null) errorDismissed.Add(unit.Config.Mac);
+            ErrorBar.Visibility = Visibility.Collapsed;
+        };
         Hub.ListChanged += BuildUnits;
         Hub.Changed += Sync;
+        ActualThemeChanged += (_, _) => Sync();
+        Loaded += (_, _) => Sync();
         BuildUnits();
     }
 
-    public static IconElement ModeIcon(int mode) => mode switch
+    // ------------------------------------------------------------ building
+
+    static Geometry Geo(string data) => Draw.Geo(data);
+
+    /// <summary>A 24 × 24 line icon at the given size. Optional filled shape underneath.</summary>
+    static IconParts Icon(string strokes, double size, double width, string? fill = null)
     {
-        AcState.Cool => Path(SnowPath),
-        AcState.Dry => new FontIcon { Glyph = "" },
-        AcState.Fan => Path(FanPath),
-        AcState.Heat => new FontIcon { Glyph = "" },
-        _ => new FontIcon { Glyph = "" },
+        var canvas = new Canvas { Width = 24, Height = 24 };
+        Path? f = null;
+        if (fill != null)
+        {
+            f = new Path { Data = Geo(fill), Opacity = 0.35 };
+            canvas.Children.Add(f);
+        }
+        var parts = strokes.Split('|').Select(s => new Path
+        {
+            Data = Geo(s), StrokeThickness = width, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
+            StrokeLineJoin = PenLineJoin.Round,
+        }).ToArray();
+        foreach (var p in parts) canvas.Children.Add(p);
+        return new IconParts { Box = new Viewbox { Width = size, Height = size, Child = canvas }, Strokes = parts, Fill = f };
+    }
+
+    static void Colour(IconParts icon, Color c)
+    {
+        foreach (var p in icon.Strokes) p.Stroke = Palette.B(c);
+        if (icon.Fill != null) icon.Fill.Fill = Palette.B(c);
+    }
+
+    static Button RoundButton(string glyph, string label, Action click)
+    {
+        var b = new Button
+        {
+            Width = 40, Height = 40, CornerRadius = new CornerRadius(20), Padding = new Thickness(0),
+            Content = new FontIcon { Glyph = glyph, FontSize = 14 },
+        };
+        AutomationProperties.SetName(b, label);
+        ToolTipService.SetToolTip(b, label);
+        b.Click += (_, _) => click();
+        return b;
+    }
+
+    static Button Bare(UIElement content) => new()
+    {
+        Style = (Style)Application.Current.Resources["BareButton"], HorizontalAlignment = HorizontalAlignment.Stretch,
+        VerticalAlignment = VerticalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
+        VerticalContentAlignment = VerticalAlignment.Stretch, Content = content,
     };
 
-    static Geometry Geometry(string data) => (Geometry)XamlBindingHelper.ConvertValue(typeof(Geometry), data);
-    static PathIcon Path(string data) => new() { Data = Geometry(data) };
-
-    /// <summary>A 20x20 airflow icon shown at <paramref name="size"/> pixels (same scale for every icon).</summary>
-    /// The shape itself is scaled, so the icon sits directly in the button and takes its text colour
-    /// (white on the accent colour when selected).
-    static PathIcon AirIcon(string data, double size)
+    static void Hover(Button b, Border overlay)
     {
-        var g = Geometry(data);
-        g.Transform = new ScaleTransform { ScaleX = size / 20, ScaleY = size / 20 };
-        return new PathIcon { Data = g, Width = size, Height = size };
+        b.PointerEntered += (_, _) => overlay.Opacity = 1;
+        b.PointerExited += (_, _) => overlay.Opacity = 0;
     }
 
-    /// <summary>Five toggle buttons showing where the air goes, used like option buttons.</summary>
-    ToggleButton[] MakePositions(Panel host, string[] icons, string[] names, string prefix)
+    ModeCard BuildModeCard(int m)
     {
-        var buttons = new ToggleButton[icons.Length];
-        for (int i = 0; i < icons.Length; i++)
+        var (icon, desc, _, _) = Modes[m];
+        var tint = new Border { CornerRadius = new CornerRadius(12) };
+        var hover = new Border { CornerRadius = new CornerRadius(12), Opacity = 0 };
+        var mark = Icon(icon, 44, 1.4);
+        mark.Box.HorizontalAlignment = HorizontalAlignment.Right;
+        mark.Box.VerticalAlignment = VerticalAlignment.Center;
+        mark.Box.Margin = new Thickness(0, 0, 10, 0);
+        var glyph = Icon(icon, 20, 1.8);
+        var badge = new Border { Width = 38, Height = 38, CornerRadius = new CornerRadius(19), Child = glyph.Box };
+        var name = new TextBlock { Text = AcState.ModeNames[m], FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+        var sub = new TextBlock { Text = desc, FontSize = 12, TextWrapping = TextWrapping.Wrap };
+        var face = new Grid
         {
-            var b = new ToggleButton { Width = 46, Height = 42, Padding = new Thickness(0), Content = AirIcon(icons[i], 26), Tag = i };
-            ToolTipService.SetToolTip(b, names[i]);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(b, prefix + names[i]);
-            b.Click += Position_Click;
-            host.Children.Add(b);
-            buttons[i] = b;
-        }
-        return buttons;
+            CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1),
+            Children =
+            {
+                tint, hover, mark.Box,
+                ModeContent(badge, name, sub),
+            },
+        };
+        var button = Bare(face);
+        button.CornerRadius = new CornerRadius(12);
+        AutomationProperties.SetName(button, $"{AcState.ModeNames[m]}: {desc}");
+        button.Click += (_, _) => unit?.Set(("Mod", m));
+        Hover(button, hover);
+        hover.Background = Palette.B(Paint.Hex(0x808080, 0x14));
+        // Auto across the top; Cool and Dry, then Fan and Heat.
+        int row = m == 0 ? 0 : 1 + (m - 1) / 2, col = m == 0 ? 0 : (m - 1) % 2;
+        Grid.SetRow(button, row);
+        Grid.SetColumn(button, col);
+        if (m == 0) Grid.SetColumnSpan(button, 2);
+        var card = new ModeCard { Button = button, Face = face, Tint = tint, Badge = badge, Icon = glyph, Mark = mark, Name = name, Desc = sub };
+        modeCards.Add(card);
+        return card;
     }
 
-    /// <summary>Shows a specific unit (from the tray menu, for example).</summary>
+    /// <summary>Badge on the left, name and description beside it (the description wraps).</summary>
+    static Grid ModeContent(Border badge, TextBlock name, TextBlock sub)
+    {
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1, Children = { name, sub } };
+        Grid.SetColumn(texts, 1);
+        badge.VerticalAlignment = VerticalAlignment.Center;
+        return new Grid
+        {
+            ColumnSpacing = 12, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 12, 56, 12),
+            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } },
+            Children = { badge, texts },
+        };
+    }
+
+    FlowPanel BuildFlowPanel(string title, string icon, ArcSelector arc, (string Unit, string Arc, string Heads)? swing)
+    {
+        var headIcon = Icon(icon, 18, 1.7);
+        var well = new Border { Width = 32, Height = 32, CornerRadius = new CornerRadius(10), Child = headIcon.Box };
+        var status = new TextBlock { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+        var header = new Grid
+        {
+            ColumnSpacing = 10,
+            ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } },
+        };
+        var titles = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = title, FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }, status } };
+        Grid.SetColumn(titles, 1);
+        header.Children.Add(well);
+        header.Children.Add(titles);
+
+        var autoIcon = Icon(AutoIcon, 15, 1.9);
+        var auto = Toggle(autoIcon.Box, "Auto");
+        AutomationProperties.SetName(auto, title + ": automatic");
+        var buttons = new Grid { ColumnSpacing = 6 };
+        buttons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        buttons.Children.Add(auto);
+        var panel = new FlowPanel { Arc = arc, Status = status, Well = well, Icon = headIcon, Auto = auto, AutoIcon = autoIcon };
+        if (swing is { } s)
+        {
+            var swingIcon = Icon(s.Arc + "|" + s.Heads, 20, 1.8, fill: s.Unit);
+            var sw = Toggle(swingIcon.Box, "Swing");
+            AutomationProperties.SetName(sw, title + ": swing");
+            buttons.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(sw, 1);
+            buttons.Children.Add(sw);
+            panel.Swing = sw;
+            panel.SwingIcon = swingIcon;
+        }
+        arc.HorizontalAlignment = HorizontalAlignment.Center;
+        var card = new Border
+        {
+            Style = (Style)Application.Current.Resources["Card"], CornerRadius = new CornerRadius(12), Padding = new Thickness(14, 14, 14, 16),
+            Child = new StackPanel { Spacing = 4, Children = { header, arc, buttons } },
+        };
+        FlowGrid.Children.Add(card);
+        return panel;
+    }
+
+    static ToggleButton Toggle(UIElement icon, string text) => new()
+    {
+        Height = 40, CornerRadius = new CornerRadius(10), HorizontalAlignment = HorizontalAlignment.Stretch,
+        Content = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, Spacing = 6,
+            Children = { icon, new TextBlock { Text = text, FontSize = 13, VerticalAlignment = VerticalAlignment.Center } },
+        },
+    };
+
+    UIElement BuildTile(int i)
+    {
+        var (key, name, _, icon, info, _) = Extras[i];
+        var wash = new Border { CornerRadius = new CornerRadius(14) };
+        var hover = new Border { CornerRadius = new CornerRadius(14), Opacity = 0, Background = Palette.B(Paint.Hex(0x808080, 0x12)) };
+        var glyph = Icon(icon, 22, 1.8);
+        var badge = new Border { Width = 44, Height = 44, CornerRadius = new CornerRadius(14), Child = glyph.Box };
+        var state = new TextBlock { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
+        var knob = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 16, Height = 16, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(3, 0, 0, 0) };
+        var track = new Border { Width = 44, Height = 24, CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1), Child = knob };
+        track.HorizontalAlignment = HorizontalAlignment.Right;
+        track.VerticalAlignment = VerticalAlignment.Center;
+        track.Margin = new Thickness(0, 0, 16, 0);
+        var face = new Grid
+        {
+            Height = 76, CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1),
+            Children =
+            {
+                wash, hover, track,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal, Spacing = 14, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 104, 0),
+                    Children =
+                    {
+                        badge,
+                        new StackPanel
+                        {
+                            VerticalAlignment = VerticalAlignment.Center, Spacing = 2,
+                            Children = { new TextBlock { Text = name, FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }, state },
+                        },
+                    },
+                },
+            },
+        };
+        var button = Bare(face);
+        button.CornerRadius = new CornerRadius(14);
+        AutomationProperties.SetName(button, name);
+        Hover(button, hover);
+        button.Click += (_, _) => ToggleExtra(i);
+
+        // ⓘ: the tooltip shows on hover or keyboard focus; a click or tap opens the same text.
+        var tip = new StackPanel
+        {
+            MaxWidth = 300, Spacing = 4,
+            Children =
+            {
+                new TextBlock { Text = name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
+                new TextBlock { Text = info, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, LineHeight = 18 },
+            },
+        };
+        var infoButton = new Button
+        {
+            Width = 32, Height = 32, CornerRadius = new CornerRadius(16), Padding = new Thickness(0), Background = Palette.B(Paint.Hex(0, 0)),
+            BorderThickness = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 66, 0), Content = new FontIcon { Glyph = "", FontSize = 16 },
+        };
+        AutomationProperties.SetName(infoButton, "About " + name);
+        AutomationProperties.SetHelpText(infoButton, info);
+        ToolTipService.SetToolTip(infoButton, new ToolTip { Content = tip });
+        infoButton.Flyout = new Flyout
+        {
+            Content = new StackPanel
+            {
+                MaxWidth = 300, Spacing = 4,
+                Children =
+                {
+                    new TextBlock { Text = name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
+                    new TextBlock { Text = info, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, LineHeight = 18 },
+                },
+            },
+        };
+        AutomationProperties.SetHelpText(button, info);
+
+        tiles.Add(new ExtraTile
+        {
+            Index = i, Button = button, Face = face, Wash = wash, Badge = badge, SwitchTrack = track, SwitchKnob = knob, Icon = glyph, State = state, Info = infoButton,
+        });
+        return new Grid { Children = { button, infoButton } };
+    }
+
+    // ------------------------------------------------------------ units
+
+    /// <summary>Shows a specific unit (from Home or the tray menu, for example).</summary>
     public void Select(AcUnit target)
     {
         if (UnitBar.Items.FirstOrDefault(i => i.Tag == target) is { } item) UnitBar.SelectedItem = item;
@@ -127,8 +442,9 @@ public sealed partial class AcPage : Page
         foreach (var u in Hub.Units) UnitBar.Items.Add(new SelectorBarItem { Text = u.Config.DisplayName, Tag = u });
         unit = Hub.Units.FirstOrDefault(u => u.Config.Mac == keep) ?? Hub.Units.FirstOrDefault();
         UnitBar.SelectedItem = UnitBar.Items.FirstOrDefault(i => i.Tag == unit);
-        UnitBar.Visibility = Hub.Units.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        RenameButton.Visibility = UnitBar.Visibility = Hub.Units.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         SetupBar.IsOpen = Hub.Units.Count == 0;
+        SetupBar.Visibility = SetupBar.IsOpen ? Visibility.Visible : Visibility.Collapsed;
         Controls.Visibility = Hub.Units.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         syncing = false;
         Sync();
@@ -141,50 +457,98 @@ public sealed partial class AcPage : Page
         Sync();
     }
 
+    // ------------------------------------------------------------ showing the unit
+
+    /// <summary>A louvre's setting: the fixed position (0-4, or -1), whether it swings, and a sentence.</summary>
+    (int Pos, bool Swing, string Status) Louvre(AcState st, string key, string[] names)
+    {
+        int v = st.Get(key);
+        if (v is >= 2 and <= 6)
+        {
+            lastPosition[unit!.Config.Mac + key] = v;
+            return (v - 2, false, "Fixed: " + names[v - 2].ToLowerInvariant());
+        }
+        return v switch
+        {
+            0 => (-1, false, "Automatic: the unit chooses"),
+            1 => (-1, true, "Swinging"),
+            >= 7 and <= 11 when key == "SwUpDn" => (-1, true, "Swinging over the " + PartSwingNames[v - 7]),
+            _ => (-1, false, $"Set from the remote (setting {v})"),
+        };
+    }
+
     void Sync()
     {
         if (unit == null) return;
         syncing = true;
         try
         {
-            NameText.Text = unit.Config.DisplayName;
-            string kind = unit.StatusKind;
-            VisualStateManager.GoToState(this, kind switch { "ok" => "StatusOk", "error" => "StatusError", _ => "StatusBusy" }, true);
-            StatusText.Text = kind == "error" ? "Not connected" : unit.StatusText;
-            ErrorBar.IsOpen = kind == "error";
-            ErrorBar.Message = unit.StatusText;
-
+            var p = Palette.For(this);
             var st = unit.Shown;
-            foreach (var c in new Control[] { PowerSwitch, MinusButton, PlusButton, FanBox, VSwingButton, HSwingButton })
-                c.IsEnabled = st != null;
-            foreach (var b in vertical.Positions.Concat(horizontal.Positions)) b.IsEnabled = st != null;
-            ModeBar.IsEnabled = st != null;
-            foreach (var s in extras.Values) s.IsEnabled = st != null;
-            if (st == null)
+            ErrorBar.IsOpen = unit.StatusKind == "error" && !errorDismissed.Contains(unit.Config.Mac);
+            ErrorBar.Visibility = ErrorBar.IsOpen ? Visibility.Visible : Visibility.Collapsed;
+            if (unit.StatusKind == "ok") errorDismissed.Remove(unit.Config.Mac);
+            ErrorBar.Message = unit.StatusText;
+            bool known = st != null, on = st?.On == true;
+            foreach (var c in new Control[] { PowerSwitch, minus, plus, fanPanel.Auto, vPanel.Auto, hPanel.Auto, vPanel.Swing!, hPanel.Swing! })
+                c.IsEnabled = known;
+            fanPanel.Arc.IsEnabled = vPanel.Arc.IsEnabled = hPanel.Arc.IsEnabled = known;
+            foreach (var m in modeCards) m.Button.IsEnabled = known;
+
+            // Temperature and power
+            bool usesTemp = st?.UsesSetTemp ?? true;
+            PowerSwitch.IsOn = on;
+            VisualStateManager.GoToState(PowerSwitch, on ? "On" : "Off", false); // after a theme change it can keep showing the old state
+            StateText.Text = st == null ? (unit.StatusKind == "busy" ? "Connecting…" : "Unknown") : st.Describe();
+            RoomText.Text = st?.RoomTemp is int room ? $"{room} °C" : "--";
+            if (st != null && !dial.IsDragging) dial.Value = st.SetTemp;
+            dial.IsEnabled = known && usesTemp;
+            minus.IsEnabled = known && usesTemp && st!.SetTemp > AcState.MinTemp;
+            plus.IsEnabled = known && usesTemp && st!.SetTemp < AcState.MaxTemp;
+            dialValue.Text = st != null ? $"{st.SetTemp}°" : "--";
+            dialValue.Foreground = Palette.B(on && usesTemp ? p.Accent : p.Text);
+            dialCaption.Text = st == null ? "Connecting" : !usesTemp ? $"Not used in {AcState.ModeNames[st.Mode]}" : on ? "Target" : "Off · target";
+            dialCaption.Foreground = Palette.B(p.Text2);
+            dial.ArcBrush = Palette.B(on ? p.Accent : p.Text3);
+            dial.TrackBrush = Palette.B(p.Track);
+            dial.KnobBrush = Palette.B(p.ThumbRing);
+            dial.KnobStrokeBrush = Palette.B(p.CtrlStroke);
+            dial.TickBrush = Palette.B(p.CtrlStroke);
+            dial.TickActiveBrush = Palette.B(p.Text2);
+            dial.LabelBrush = Palette.B(p.Text3);
+
+            // Mode
+            for (int m = 0; m < modeCards.Count; m++) ShowMode(modeCards[m], m, st?.Mode == m, p);
+
+            // Fan speed
+            int speed = st?.FanSpeed ?? 3;
+            bool fanAuto = speed == 0;
+            int level = fanAuto ? (lastFan.TryGetValue(unit.Config.Mac, out var lf) ? lf : 3) : speed;
+            if (!fanAuto) lastFan[unit.Config.Mac] = speed;
+            fanPanel.Status.Text = st == null ? "" : fanAuto ? "Automatic: the unit sets the speed" : FanLevelNames[speed - 1];
+            fanPanel.Arc.Show(p, level - 1, false, known && !fanAuto);
+            fanScene.Show(p, on, fanAuto, level);
+            ShowToggle(fanPanel.Auto, fanPanel.AutoIcon, fanAuto && known, p);
+            AutomationProperties.SetName(fanScene, "Fan, " + (fanAuto ? "automatic speed" : FanLevelNames[level - 1].ToLowerInvariant() + " speed"));
+
+            // Up and down, left and right
+            var (vPos, vSwing, vStatus) = st != null ? Louvre(st, "SwUpDn", VerticalNames) : (-1, false, "");
+            var (hPos, hSwing, hStatus) = st != null ? Louvre(st, "SwingLfRig", HorizontalNames) : (-1, false, "");
+            ShowLouvre(vPanel, vPos, vSwing, vStatus, st?.Get("SwUpDn") == 0 && known, p);
+            ShowLouvre(hPanel, hPos, hSwing, hStatus, st?.Get("SwingLfRig") == 0 && known, p);
+            sideScene.Show(p, vPos, vSwing);
+            int vi = vSwing || vPos < 0 ? 2 : vPos;
+            frontScene.Show(p, hPos, hSwing, vi, on, st?.SetTemp ?? 0);
+
+            foreach (var panel in new[] { fanPanel, vPanel, hPanel })
             {
-                StateText.Text = kind == "busy" ? "Connecting…" : "Unknown";
-                RoomText.Text = "";
-                TempText.Text = "– °C";
-                UpdateBadge(null);
-                return;
+                panel.Status.Foreground = Palette.B(p.Text3);
+                panel.Well.Background = Palette.B(p.Well);
+                Colour(panel.Icon, p.Text);
             }
 
-            PowerSwitch.IsOn = st.On;
-            StateText.Text = st.Describe();
-            TempText.Text = $"{st.SetTemp} °C";
-            MinusButton.IsEnabled = st.UsesSetTemp && st.SetTemp > AcState.MinTemp;
-            PlusButton.IsEnabled = st.UsesSetTemp && st.SetTemp < AcState.MaxTemp;
-            string room = st.RoomTemp is int r ? $"Room {r} °C" : "";
-            RoomText.Text = st.UsesSetTemp ? room
-                          : (room.Length > 0 ? room + " · " : "") + $"Not used in {AcState.ModeNames[st.Mode]} mode";
-
-            if (ModeBar.SelectedItem != modeItems[st.Mode]) ModeBar.SelectedItem = modeItems[st.Mode];
-            FanBox.SelectedIndex = st.FanSpeed;
-            SyncLouvre(vertical, st);
-            SyncLouvre(horizontal, st);
-            foreach (var (key, sw) in extras) sw.IsOn = st.Is(key);
-            TurboSwitch.IsEnabled = st.Mode is AcState.Cool or AcState.Heat;
-            UpdateBadge(st);
+            // More options
+            foreach (var t in tiles) ShowTile(t, st, p);
         }
         finally
         {
@@ -192,86 +556,125 @@ public sealed partial class AcPage : Page
         }
     }
 
-    void SyncLouvre(Louvre l, AcState st)
+    void ShowMode(ModeCard c, int m, bool selected, Palette p)
     {
-        int v = st.Get(l.Key);
-        int fixedAt = v is >= 2 and <= 6 ? v - 2 : -1;
-        if (fixedAt >= 0) lastPosition[unit!.Config.Mac + l.Key] = v;
-        for (int i = 0; i < l.Positions.Length; i++) l.Positions[i].IsChecked = i == fixedAt;
-        bool partSwing = l == vertical && v is >= 7 and <= 11;
-        l.Swing.IsChecked = v == 1 || partSwing;
-        l.Card.Description = v switch
+        var (_, _, deepHex, lightHex) = Modes[m];
+        Color deep = Paint.Hex(deepHex), light = Paint.Hex(lightHex);
+        Point from = new(0.18, 0.11), to = new(0.82, 0.89); // 140°
+        if (selected)
         {
-            0 => "Automatic: the unit chooses",
-            1 => "Swinging",
-            _ when fixedAt >= 0 => "Fixed: " + l.Names[fixedAt].ToLowerInvariant(),
-            _ when partSwing => "Swinging over the " + PartSwingNames[v - 7],
-            _ => $"Set from the remote (setting {v})",
-        };
+            c.Face.Background = Draw.Gradient(from, to, (0, deep), (1, light));
+            c.Tint.Background = null;
+            c.Face.BorderBrush = Palette.B(deep);
+            c.Badge.Background = Palette.B(Paint.Hex(0xFFFFFF, 0x3D));
+            Colour(c.Icon, Paint.Hex(0xFFFFFF));
+            Colour(c.Mark, Paint.Hex(0xFFFFFF, 0x47));
+            c.Name.Foreground = Palette.B(Paint.Hex(0xFFFFFF));
+            c.Desc.Foreground = Palette.B(Paint.Hex(0xFFFFFF, 0xE0));
+        }
+        else
+        {
+            c.Face.Background = Palette.B(p.Ctrl);
+            c.Tint.Background = Draw.Gradient(from, to, (0, Paint.WithAlpha(light, 0.18)), (0.65, Paint.WithAlpha(light, 0)));
+            c.Face.BorderBrush = Palette.B(p.CtrlStroke);
+            c.Badge.Background = Palette.B(Paint.WithAlpha(light, 0.2));
+            Colour(c.Icon, deep);
+            Colour(c.Mark, Paint.WithAlpha(light, 0.25));
+            c.Name.Foreground = Palette.B(p.Text);
+            c.Desc.Foreground = Palette.B(p.Text3);
+        }
+        AutomationProperties.SetItemStatus(c.Button, selected ? "Selected" : "");
     }
 
-    void Position_Click(object sender, RoutedEventArgs e)
+    static void ShowToggle(ToggleButton b, IconParts icon, bool on, Palette p)
     {
-        if (sender is not ToggleButton { Tag: int index } b) return;
-        var l = vertical.Positions.Contains(b) ? vertical : horizontal;
-        unit?.Set((l.Key, index + 2)); // picking a direction stops the swing
-        Sync(); // keeps the clicked button checked even when it already was
+        b.IsChecked = on;
+        Colour(icon, on ? p.OnAccent : p.Text);
     }
 
-    void Swing_Click(object sender, RoutedEventArgs e)
+    void ShowLouvre(FlowPanel panel, int pos, bool swing, string status, bool auto, Palette p)
     {
-        if (sender is not ToggleButton { Tag: Louvre l } b || unit == null) return;
-        // Turning swing off goes back to the last fixed direction, or lets the unit choose.
-        int off = lastPosition.TryGetValue(unit.Config.Mac + l.Key, out var last) ? last : 0;
-        unit.Set((l.Key, b.IsChecked == true ? 1 : off));
+        panel.Status.Text = status;
+        panel.Arc.Show(p, pos, swing, !swing && pos >= 0);
+        ShowToggle(panel.Auto, panel.AutoIcon, auto, p);
+        ShowToggle(panel.Swing!, panel.SwingIcon!, swing, p);
+        // The sweep is dashed while swing is off and solid while it's on (dashes are in stroke widths).
+        panel.SwingIcon!.Strokes[0].StrokeDashArray = swing ? null : [2.4 / 1.8, 2.2 / 1.8];
     }
 
-    void UpdateBadge(AcState? st)
+    void ShowTile(ExtraTile t, AcState? st, Palette p)
     {
-        bool on = st?.On == true;
-        int mode = st?.Mode ?? AcState.Cool;
-        BadgeBrush.Color = ModeColours[mode];
-        Badge.Opacity = on ? 1 : 0;
-        var icon = ModeIcon(mode);
-        if (on) icon.Foreground = new SolidColorBrush(Colors.White);
-        BadgeIcon.Child = icon;
+        var (key, name, idle, _, _, colourHex) = Extras[t.Index];
+        var col = Paint.Hex(colourHex);
+        bool on = st?.Is(key) == true;
+        bool disabled = st == null || (key == "Tur" && st.Mode is not (AcState.Cool or AcState.Heat));
+        t.Button.IsEnabled = !disabled;
+        t.Button.Opacity = disabled && st != null ? 0.5 : 1;
+        t.State.Text = st == null ? "" : key == "Tur" && disabled ? "Cool and Heat only" : on ? "On" : idle;
+        t.State.Foreground = Palette.B(on ? (p.Dark ? Paint.Mix(col, Paint.Hex(0xFFFFFF), 0.35) : col) : p.Text3);
+        t.Face.Background = Palette.B(p.Card);
+        t.Info.Foreground = Palette.B(p.Text3);
+        t.Face.BorderBrush = Palette.B(on ? Paint.WithAlpha(col, 0.53) : p.CardStroke);
+        t.Wash.Background = on ? Draw.Gradient(new(0, 0), new(1, 1), (0, Paint.WithAlpha(col, 0.14)), (0.6, Paint.WithAlpha(col, 0.03))) : null;
+        t.Badge.Background = Palette.B(on ? col : Paint.WithAlpha(col, 0.12));
+        Colour(t.Icon, on ? Paint.Hex(0xFFFFFF) : (p.Dark ? Paint.Mix(col, Paint.Hex(0xFFFFFF), 0.35) : col));
+        t.SwitchTrack.Background = on ? Palette.B(col) : null;
+        t.SwitchTrack.BorderBrush = Palette.B(on ? col : p.SwitchOff);
+        t.SwitchKnob.Fill = Palette.B(on ? Paint.Hex(0xFFFFFF) : p.SwitchOff);
+        t.SwitchKnob.Margin = new Thickness(on ? 23 : 3, 0, 0, 0);
+        AutomationProperties.SetName(t.Button, $"{name}, {(on ? "on" : "off")}");
     }
 
-    void Badge_Click(object sender, RoutedEventArgs e)
-    {
-        if (unit?.Shown != null) unit.TogglePower();
-    }
+    // ------------------------------------------------------------ changes
 
     void Power_Toggled(object sender, RoutedEventArgs e)
     {
-        if (!syncing) unit?.Set(("Pow", PowerSwitch.IsOn ? 1 : 0));
+        // Only when it differs: the switch can report a change made by Sync (for another unit) a moment later.
+        if (!syncing && unit?.Shown is { } st && PowerSwitch.IsOn != st.On) unit.Set(("Pow", PowerSwitch.IsOn ? 1 : 0));
     }
 
     void ChangeTemp(int delta)
     {
         if (unit?.Shown is not { } st) return;
-        int t = Math.Clamp(st.SetTemp + delta, AcState.MinTemp, AcState.MaxTemp);
-        unit.Set(("SetTem", t), ("TemUn", 0));
+        unit.Set(("SetTem", Math.Clamp(st.SetTemp + delta, AcState.MinTemp, AcState.MaxTemp)), ("TemUn", 0));
     }
 
-    void Minus_Click(object sender, RoutedEventArgs e) => ChangeTemp(-1);
-    void Plus_Click(object sender, RoutedEventArgs e) => ChangeTemp(+1);
-
-    void Mode_Changed(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    void SetFan(int speed)
     {
-        if (!syncing && sender.SelectedItem?.Tag is int mode) unit?.Set(("Mod", mode));
+        if (unit == null) return;
+        lastFan[unit.Config.Mac] = speed;
+        unit.Set(("WdSpd", speed));
     }
 
-    void Fan_Changed(object sender, SelectionChangedEventArgs e)
+    void ToggleFanAuto()
     {
-        if (!syncing && FanBox.SelectedItem is ComboBoxItem { Tag: int speed }) unit?.Set(("WdSpd", speed));
+        if (unit?.Shown is not { } st) return;
+        if (st.FanSpeed == 0) unit.Set(("WdSpd", lastFan.TryGetValue(unit.Config.Mac, out var last) ? last : 3));
+        else
+        {
+            lastFan[unit.Config.Mac] = st.FanSpeed;
+            unit.Set(("WdSpd", 0));
+        }
     }
 
-    void Extra_Toggled(object sender, RoutedEventArgs e)
+    void ToggleSwing(string key)
     {
-        if (syncing || sender is not ToggleSwitch { Tag: string key } sw) return;
-        // Quiet uses 2 for "on" (1 is an automatic mode on some units).
-        unit?.Set((key, sw.IsOn ? (key == "Quiet" ? 2 : 1) : 0));
+        if (unit?.Shown is not { } st) return;
+        bool swinging = st.Get(key) == 1 || (key == "SwUpDn" && st.Get(key) is >= 7 and <= 11);
+        // Turning swing off goes back to the last fixed direction, or lets the unit choose.
+        int off = lastPosition.TryGetValue(unit.Config.Mac + key, out var last) ? last : 0;
+        unit.Set((key, swinging ? off : 1));
+    }
+
+    void ToggleExtra(int i)
+    {
+        if (unit?.Shown is not { } st) return;
+        string key = Extras[i].Key;
+        bool turnOn = !st.Is(key);
+        // Quiet uses 2 for "on" (1 is an automatic mode on some units). Turbo and Quiet exclude each other.
+        if (key == "Tur" && turnOn) unit.Set(("Tur", 1), ("Quiet", 0));
+        else if (key == "Quiet" && turnOn) unit.Set(("Quiet", 2), ("Tur", 0));
+        else unit.Set((key, turnOn ? 1 : 0));
     }
 
     void Retry_Click(object sender, RoutedEventArgs e) => _ = unit?.RefreshAsync();

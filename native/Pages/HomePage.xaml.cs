@@ -189,14 +189,14 @@ public sealed partial class HomePage : Page
                 "M26 28v14M40 28v18M54 28v14 M36 38l4 4 4-4",
                 () =>
                 {
-                    foreach (var u in acs.Units) u.Set(("Pow", 1), ("Mod", AcState.Cool), ("SetTem", 24), ("Tur", 1), ("Quiet", 0));
+                    foreach (var u in acs.Units) u.Set(("Pow", 1), ("Mod", AcState.Cool), ("SetTem", 24), ("TemUn", 0), ("Tur", 1), ("Quiet", 0));
                 }),
             new("Movie", "Light dim blue, running ACs on Quiet", 0x3E6FE0, 0x141B33,
                 "M17 6h46v27H17z", "M14 3h52v33H14z", "M37 13v13l11-6.5z M36 36h8v3h-8z M29 39h22v2H29z M8 49a6 6 0 0 1 6-6h52a6 6 0 0 1 6 6v8H8z", "",
                 () =>
                 {
                     Session.Submit(LightSession.Scenes.First(s => s.Name == "Movie").Command);
-                    foreach (var u in acs.Units.Where(u => u.Shown?.On == true)) u.Set(("Quiet", 1), ("Tur", 0));
+                    foreach (var u in acs.Units.Where(u => u.Shown?.On == true)) u.Set(("Quiet", 2), ("Tur", 0));
                 }),
             new("Sleep", "Night light, ACs on Sleep at 27 °C", 0xF2802E, 0x2A1A12,
                 "M64 36 L56 50 H74 Z", "M6 42h56v8H6z M6 32h8v18H6z M18 36h14v6H18z",
@@ -204,7 +204,7 @@ public sealed partial class HomePage : Page
                 () =>
                 {
                     Session.Submit(LightSession.Scenes.First(s => s.Name == "Night").Command);
-                    foreach (var u in acs.Units) u.Set(("Pow", 1), ("SwhSlp", 1), ("SetTem", 27), ("Tur", 0));
+                    foreach (var u in acs.Units) u.Set(("Pow", 1), ("SwhSlp", 1), ("SetTem", 27), ("TemUn", 0), ("Tur", 0));
                 }),
             new("All off", $"Light, music sync and {both} off", 0x8A8F98, 0x1C1E22,
                 "", "M6 54h68v2H6z M16 22h20v16H16z M44 22h20v16H44z", "M40 12a14 14 0 1 0 0.1 0z", "M40 6v12 M32 11a12 12 0 1 0 16 0",
@@ -371,6 +371,7 @@ public sealed partial class HomePage : Page
         lightCard.Body = lightDial;
         lightCard.PowerToggled += on =>
         {
+            if (on == (Session.Shown?.On == true)) return; // already so
             ClearScene();
             Session.Submit(LightCommand.Power(on));
         };
@@ -451,11 +452,12 @@ public sealed partial class HomePage : Page
         parts.Dial.ValueChanged += v =>
         {
             ClearScene();
-            unit.Set(("SetTem", (int)v));
+            unit.Set(("SetTem", (int)v), ("TemUn", 0));
         };
         parts.Card.Body = parts.Dial;
         parts.Card.PowerToggled += on =>
         {
+            if (unit.Shown is not { } st || on == st.On) return; // unknown, or already so
             ClearScene();
             unit.Set(("Pow", on ? 1 : 0));
         };
@@ -467,7 +469,7 @@ public sealed partial class HomePage : Page
     {
         if (unit.Shown is not { } st) return;
         ClearScene();
-        unit.Set(("SetTem", Math.Clamp(st.SetTemp + delta, AcState.MinTemp, AcState.MaxTemp)));
+        unit.Set(("SetTem", Math.Clamp(st.SetTemp + delta, AcState.MinTemp, AcState.MaxTemp)), ("TemUn", 0));
     }
 
     void UpdateAcs()

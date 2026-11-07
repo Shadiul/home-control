@@ -28,7 +28,11 @@ public sealed partial class RadialDial : UserControl
     readonly Canvas canvas;
     readonly Path track, fill;
     readonly Grid knob;
-    readonly Border knobBar;
+    readonly Border knobBar, knobFace;
+    readonly List<Line> ticks = [];
+    readonly TextBlock minLabel = new() { FontSize = 12, TextAlignment = TextAlignment.Center, Width = 40 };
+    readonly TextBlock maxLabel = new() { FontSize = 12, TextAlignment = TextAlignment.Center, Width = 40 };
+    Brush? tickBrush, tickActiveBrush;
     readonly ContentPresenter centre;
     readonly RotateTransform knobRotate = new();
     double diameter = 210, thickness = 14, value, minimum, maximum = 100;
@@ -41,18 +45,15 @@ public sealed partial class RadialDial : UserControl
         track = new Path { StrokeThickness = thickness, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
         fill = new Path { StrokeThickness = thickness, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
         knobBar = new Border { Width = 3, Height = 16, CornerRadius = new CornerRadius(1.5) };
+        knobFace = new Border { CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Colors.White),
+                                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x3D, 0, 0, 0)), BorderThickness = new Thickness(1) };
         knob = new Grid
         {
             Width = 16, Height = 34,
             RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = knobRotate,
-            Children =
-            {
-                new Border { CornerRadius = new CornerRadius(8), Background = new SolidColorBrush(Colors.White),
-                             BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x3D, 0, 0, 0)), BorderThickness = new Thickness(1) },
-                knobBar,
-            },
+            Children = { knobFace, knobBar },
         };
-        canvas = new Canvas { Children = { track, fill, knob } };
+        canvas = new Canvas { Children = { track, fill, minLabel, maxLabel, knob } };
         centre = new ContentPresenter
         {
             HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top,
@@ -107,7 +108,46 @@ public sealed partial class RadialDial : UserControl
 
     public object? Center { get => centre.Content; set => centre.Content = value; }
 
-    double Radius => diameter * 0.4;
+    /// <summary>Size of the pill handle (width × height); the bar inside grows with it.</summary>
+    public Size KnobSize
+    {
+        get => new(knob.Width, knob.Height);
+        set
+        {
+            knob.Width = value.Width;
+            knob.Height = value.Height;
+            knobFace.CornerRadius = new CornerRadius(value.Width / 2);
+            knobBar.Height = Math.Round(value.Height * 0.45);
+            Layout();
+        }
+    }
+
+    public Brush KnobBrush { get => knobFace.Background; set => knobFace.Background = value; }
+    public Brush KnobStrokeBrush { get => knobFace.BorderBrush; set => knobFace.BorderBrush = value; }
+
+    /// <summary>Small marks inside the ring, one per step when set (0 for none). Marks up to the value use the active brush.</summary>
+    public int TickCount { get => ticks.Count; set { SetTicks(value); Layout(); } }
+    public Brush? TickBrush { get => tickBrush; set { tickBrush = value; Update(); } }
+    public Brush? TickActiveBrush { get => tickActiveBrush; set { tickActiveBrush = value; Update(); } }
+
+    /// <summary>Text under the two ends of the ring ("16°" and "30°"); empty for none.</summary>
+    public string MinLabel { get => minLabel.Text; set { minLabel.Text = value; Layout(); } }
+    public string MaxLabel { get => maxLabel.Text; set { maxLabel.Text = value; Layout(); } }
+    public Brush LabelBrush { get => minLabel.Foreground; set => minLabel.Foreground = maxLabel.Foreground = value; }
+
+    void SetTicks(int count)
+    {
+        foreach (var t in ticks) canvas.Children.Remove(t);
+        ticks.Clear();
+        for (int i = 0; i < count; i++)
+        {
+            var line = new Line { StrokeThickness = 1.5, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
+            ticks.Add(line);
+            canvas.Children.Insert(0, line);
+        }
+    }
+
+    double Radius => diameter / 2 - Math.Max(thickness / 2, knob.Height / 2) - 4;
     Point Centre => new(diameter / 2, diameter / 2);
 
     Point PointAt(double angle)
@@ -134,12 +174,28 @@ public sealed partial class RadialDial : UserControl
     {
         // The ring's lowest points are at 135° and 45°; trim the empty bottom below them.
         double bottom = Centre.Y + Radius * Math.Sin(Math.PI / 4) + 20;
+        if (minLabel.Text.Length > 0 || maxLabel.Text.Length > 0) bottom += 18;
         root.Width = canvas.Width = diameter;
         root.Height = canvas.Height = Math.Min(diameter, bottom);
         centre.Width = diameter;
         centre.Height = diameter;
         centre.VerticalAlignment = VerticalAlignment.Top;
         track.Data = Arc(StartAngle, Sweep);
+        var start = PointAt(StartAngle);
+        var end = PointAt(StartAngle + Sweep);
+        Canvas.SetLeft(minLabel, start.X - 20);
+        Canvas.SetTop(minLabel, start.Y + 14);
+        Canvas.SetLeft(maxLabel, end.X - 20);
+        Canvas.SetTop(maxLabel, end.Y + 14);
+        double inner = Radius - thickness / 2 - 4;
+        for (int i = 0; i < ticks.Count; i++)
+        {
+            double a = (StartAngle + Sweep * i / Math.Max(1, ticks.Count - 1)) * Math.PI / 180;
+            ticks[i].X1 = Centre.X + (inner - 5) * Math.Cos(a);
+            ticks[i].Y1 = Centre.Y + (inner - 5) * Math.Sin(a);
+            ticks[i].X2 = Centre.X + inner * Math.Cos(a);
+            ticks[i].Y2 = Centre.Y + inner * Math.Sin(a);
+        }
         Update();
     }
 
@@ -154,6 +210,8 @@ public sealed partial class RadialDial : UserControl
         Canvas.SetLeft(knob, p.X - knob.Width / 2);
         Canvas.SetTop(knob, p.Y - knob.Height / 2);
         knobRotate.Angle = angle + 90;
+        for (int i = 0; i < ticks.Count; i++)
+            ticks[i].Stroke = (double)i / Math.Max(1, ticks.Count - 1) <= Fraction + 1e-9 ? tickActiveBrush : tickBrush;
     }
 
     // ------------------------------------------------------------ input

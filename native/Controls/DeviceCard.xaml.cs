@@ -44,10 +44,13 @@ public sealed partial class DeviceCard : UserControl
         get => Power.IsOn;
         set
         {
-            if (Power.IsOn == value) return;
-            settingPower = true;
-            Power.IsOn = value;
-            settingPower = false;
+            if (Power.IsOn != value)
+            {
+                settingPower = true;
+                Power.IsOn = value;
+                settingPower = false;
+            }
+            VisualStateManager.GoToState(Power, value ? "On" : "Off", false); // after a theme change it can keep showing the old state
         }
     }
 

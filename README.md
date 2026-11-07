@@ -33,14 +33,24 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     (10 to 25 per second).
   - It only works over the home network. **Stop** puts the light back how it was; changing the light on the
     Light page also stops it.
-- **Air conditioners:** one tab per unit. Power, target temperature (16 to 30 °C) with the room temperature,
-  mode (Auto, Cool, Dry, Fan, Heat), fan speed, airflow direction, and Turbo, Quiet, Sleep, display light,
-  Health (ionizer) and X-Fan.
-  - **Airflow:** "Up and down" has five buttons with arrows showing where the air goes, from straight ahead to
-    straight down (seen from the side). "Left and right" has five from far left to far right (seen from above).
-    Each row has its own **Swing** toggle; turning it off goes back to the last direction you picked. The text
-    under each heading says what's set ("Fixed: halfway down", "Swinging", or "Automatic: the unit chooses"). The pencil next to the name renames a unit. Changes show at once and are
-  confirmed by reading the unit back; the page refreshes every 20 seconds, so changes from the remote show up too.
+- **Climate:** one tab per air conditioner, with **Rename** beside the tabs.
+  - **Temperature:** a big ring dial (16 to 30 °C) with the target and − / + in the middle; drag the ring or use
+    the arrow keys. The room temperature and the power switch are underneath.
+  - **Mode:** a card per mode (Auto, Cool, Dry, Fan, Heat), each with its own colours and a short description.
+  - **Fan and airflow:** three panels, each a picture with its own arc slider:
+    - **Fan speed:** a fan whose rotor spins faster, and whose streams of air grow, at each step from Low to High.
+    - **Up and down:** the unit seen from the side on its wall, with the louvre flap and the air beam, from
+      straight ahead to straight down.
+    - **Left and right:** the unit seen from the front, from far left to far right.
+
+    Drag a handle or click a position. **Auto** lets the unit choose; **Swing** sweeps the whole range, and turning
+    it off goes back to the last direction you picked. The text under each title says what's set ("Fixed: halfway
+    down", "Swinging", "Automatic: the unit chooses").
+  - **More options:** tiles for Turbo, Quiet, Sleep, Display light, Health (ionizer) and X-Fan, each in its own
+    colour. Point at or tap the ⓘ to see what an option does. Turbo and Quiet switch each other off.
+
+  Changes show at once and are confirmed by reading the unit back; the page refreshes every 20 seconds, so
+  changes from the remote show up too.
 - **Settings:** connection mode (Automatic, Home network only, Tuya Cloud only) and **Run check**, which tests
   each route and fixes the IP address if the light moved. Also light details (ID, IP, local key), Tuya Cloud
   details with **Save and get local key**, app theme, "Keep running in the notification area" and "Start with Windows".
