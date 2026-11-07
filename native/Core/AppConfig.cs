@@ -95,6 +95,20 @@ public sealed class MusicPrefs
     public string Source { get; set; } = SystemSource;
 }
 
+/// <summary>The PC's own RGB lighting (NZXT, MSI and Corsair controllers).</summary>
+public sealed class PcLightingPrefs
+{
+    /// <summary>Let the app drive the PC's lighting controllers at all. Off hands them back to their own lighting.</summary>
+    public bool Enabled { get; set; } = true;
+    public bool On { get; set; } = true;
+    public int Rgb { get; set; } = 0xFFC47E;
+    public int Brightness { get; set; } = 80;
+    /// <summary>Show music sync's colours too while it runs.</summary>
+    public bool FollowMusic { get; set; } = true;
+    /// <summary>Match the room light's colour.</summary>
+    public bool FollowRoom { get; set; }
+}
+
 /// <summary>
 /// Settings in %APPDATA%\Home Control\config.json (the same layout earlier versions used under "LED Control").
 /// Values are read defensively, and keys this version doesn't know are kept when saving.
@@ -107,6 +121,7 @@ public sealed class AppConfig
     public string Theme { get; set; } = "auto"; // auto | light | dark
     public bool CloseToTray { get; set; } = true;
     public MusicPrefs Music { get; set; } = new();
+    public PcLightingPrefs Pc { get; set; } = new();
     public List<AcConfig> Acs { get; set; } = [];
 
     JsonObject root = new();
@@ -152,6 +167,14 @@ public sealed class AppConfig
         cfg.Music.Fps = MusicPrefs.Speeds.Contains(fps) ? fps : 20;
         cfg.Music.Source = Str(m, "source", MusicPrefs.SystemSource);
 
+        var pc = a?["pc_lighting"] as JsonObject;
+        cfg.Pc.Enabled = Bool(pc, "enabled", true);
+        cfg.Pc.On = Bool(pc, "on", true);
+        cfg.Pc.Rgb = Int(pc, "rgb", 0xFFC47E) & 0xFFFFFF;
+        cfg.Pc.Brightness = Math.Clamp(Int(pc, "brightness", 80), 1, 100);
+        cfg.Pc.FollowMusic = Bool(pc, "follow_music", true);
+        cfg.Pc.FollowRoom = Bool(pc, "follow_room", false);
+
         if (r0["acs"] is JsonArray acs)
             foreach (var item in acs.OfType<JsonObject>())
             {
@@ -178,6 +201,9 @@ public sealed class AppConfig
         var m = Section(a, "music");
         m["style"] = Music.Style; m["sensitivity"] = Music.Sensitivity; m["hue"] = Music.Hue;
         m["fps"] = Music.Fps; m["source"] = Music.Source;
+        var pc = Section(a, "pc_lighting");
+        pc["enabled"] = Pc.Enabled; pc["on"] = Pc.On; pc["rgb"] = Pc.Rgb; pc["brightness"] = Pc.Brightness;
+        pc["follow_music"] = Pc.FollowMusic; pc["follow_room"] = Pc.FollowRoom;
         var acs = new JsonArray();
         foreach (var ac in Acs)
             acs.Add(new JsonObject

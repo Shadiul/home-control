@@ -79,6 +79,11 @@
                         <InfoBadge x:Name="MusicBadge" Visibility="Collapsed" Style="{ThemeResource SuccessIconInfoBadgeStyle}" />
                     </NavigationViewItem.InfoBadge>
                 </NavigationViewItem>
+                <NavigationViewItem x:Name="PcNav" Content="PC lighting" Tag="pc">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE977;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="ContentFrame" />
         </NavigationView>

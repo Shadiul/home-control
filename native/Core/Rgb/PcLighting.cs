@@ -32,7 +32,7 @@ public sealed class PcLighting : IDisposable
     readonly object gate = new();
     (byte R, byte G, byte B)? pending;
     (byte R, byte G, byte B)? applied;
-    long corsairRetryAt;
+    long corsairRetryAt, nextConflictCheck;
 
     public PcLightingState State { get; private set; } = PcLightingState.Default;
     public IReadOnlyList<PcLightingDevice> Devices { get; private set; } = [];
@@ -62,6 +62,7 @@ public sealed class PcLighting : IDisposable
     public void Start(PcLightingState state)
     {
         if (running) return;
+        worker?.Join(3000); // a previous Stop may still be handing the controllers back
         State = state;
         running = true;
         SetStatus("busy", "Looking for the PC's lighting controllers…");
@@ -95,18 +96,24 @@ public sealed class PcLighting : IDisposable
         {
             Open();
             Push(State.Output);
-            long nextTick = 0;
+            long nextTick = 0, nextReopen = Environment.TickCount64 + 30_000;
             while (running)
             {
                 wake.WaitOne(250);
                 if (!running) break;
                 (byte R, byte G, byte B)? c;
                 lock (gate) { c = pending; pending = null; }
+                if (c == null && applied == null) c = State.Output;
                 if (c is { } col && col != applied) Apply(col);
                 if (Environment.TickCount64 >= nextTick)
                 {
                     nextTick = Environment.TickCount64 + 1000;
                     TickCorsair();
+                }
+                if (Environment.TickCount64 >= nextReopen)
+                {
+                    nextReopen = Environment.TickCount64 + 30_000;
+                    ReopenMissing();
                 }
                 Thread.Sleep(30); // at most about 30 updates a second
             }
@@ -168,6 +175,11 @@ public sealed class PcLighting : IDisposable
 
     void Apply((byte R, byte G, byte B) c)
     {
+        if (StatusKind == "conflict" && Environment.TickCount64 >= nextConflictCheck)
+        {
+            nextConflictCheck = Environment.TickCount64 + 5000;
+            if (ConflictingApp() == null) SetStatus(Devices.All(d => d.Ok) ? "ok" : "error", $"{Devices.Count(d => d.Ok)} of {Devices.Count} controllers ready");
+        }
         try { nzxt?.SetAll(c.R, c.G, c.B); }
         catch (Exception e) { Fail("nzxt", e); nzxt?.Dispose(); nzxt = null; }
         try { msi?.SetAll(c.R, c.G, c.B); }
@@ -181,12 +193,53 @@ public sealed class PcLighting : IDisposable
             }
             catch (Exception e)
             {
-                // Acquire/SetAll already put the hub back in hardware mode; try again in a minute.
+                // Acquire/SetAll already put the hub back in hardware mode; reopen it and try again in a minute.
                 Fail("corsair", e);
-                corsairRetryAt = Environment.TickCount64 + 60_000;
+                DropCorsair();
             }
         }
         applied = c;
+    }
+
+    void DropCorsair()
+    {
+        try { corsair?.Dispose(); } catch { }
+        corsair = null;
+        corsairRetryAt = Environment.TickCount64 + 60_000;
+        applied = null; // send the colour again once it's back
+    }
+
+    /// <summary>
+    /// Reopens controllers that failed or disappeared (after sleep, or a USB reset). Called every 30 seconds.
+    /// </summary>
+    void ReopenMissing()
+    {
+        bool reopened = false;
+        try
+        {
+            if (nzxt == null && Devices.Any(d => d.Kind == "nzxt") && NzxtSmartDevice.Find() is { } n) { nzxt = NzxtSmartDevice.Open(n); reopened = true; }
+        }
+        catch { nzxt = null; }
+        try
+        {
+            if (msi == null && Devices.Any(d => d.Kind == "msi") && MsiMysticLight.Find() is { } m) { msi = MsiMysticLight.Open(m); reopened = true; }
+        }
+        catch { msi = null; }
+        try
+        {
+            if (corsair == null && Environment.TickCount64 >= corsairRetryAt && Devices.Any(d => d.Kind == "corsair") && CorsairCommanderCore.Find() is { } c)
+            { corsair = CorsairCommanderCore.Open(c); reopened = true; }
+        }
+        catch { corsair = null; }
+        if (!reopened) return;
+        Devices = Devices.Select(d => d with
+        {
+            Ok = d.Kind switch { "nzxt" => nzxt != null, "msi" => msi != null, _ => corsair != null },
+            Error = "",
+        }).ToList();
+        applied = null;
+        lock (gate) pending ??= State.Output;
+        SetStatus(Devices.All(d => d.Ok) ? "ok" : "error", $"{Devices.Count(d => d.Ok)} of {Devices.Count} controllers ready");
     }
 
     void TickCorsair()
@@ -202,8 +255,7 @@ public sealed class PcLighting : IDisposable
         catch (Exception e)
         {
             Fail("corsair", e);
-            corsairRetryAt = Environment.TickCount64 + 60_000;
-            applied = null; // re-send the colour once the hub is back
+            DropCorsair();
         }
     }
 
@@ -231,6 +283,17 @@ public sealed class PcLighting : IDisposable
         CoolingText = "";
     }
 
+    /// <summary>For screenshots: shows sample controllers without touching any hardware.</summary>
+    public void Preview(IReadOnlyList<PcLightingDevice> devices, string cooling)
+    {
+        if (running) return;
+        Devices = devices;
+        CoolingText = cooling;
+        StatusKind = "ok";
+        StatusText = $"{devices.Count} of {devices.Count} controllers ready";
+        Changed?.Invoke();
+    }
+
     /// <summary>Stops the worker and hands every controller back. Blocks for up to 3 seconds.</summary>
     public void Stop()
     {
@@ -238,7 +301,6 @@ public sealed class PcLighting : IDisposable
         running = false;
         wake.Set();
         worker?.Join(3000);
-        worker = null;
         applied = null;
         SetStatus("off", "");
     }

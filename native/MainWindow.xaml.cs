@@ -99,6 +99,7 @@ public sealed partial class MainWindow : Window
                       "light" => typeof(LightPage),
                       "music" => typeof(MusicPage),
                       "ac" => typeof(AcPage),
+                      "pc" => typeof(PcPage),
                       _ => typeof(HomePage),
                   };
         if (ContentFrame.CurrentSourcePageType != page)
@@ -113,6 +114,7 @@ public sealed partial class MainWindow : Window
             "light" => LightNav,
             "music" => MusicNav,
             "ac" => AcNav,
+            "pc" => PcNav,
             _ => HomeNav,
         };
     }
@@ -142,13 +144,20 @@ public sealed partial class MainWindow : Window
         };
         for (int i = 0; i < App.Instance!.Acs.Units.Count; i++)
             if (App.Instance.Acs.Units[i].Shown == null) App.Instance.Acs.Units[i].Preview(new AcState(samples[i % samples.Length]));
+        // PC lighting isn't started in screenshot mode (no hardware is touched): show sample controllers.
+        App.Instance.Pc.Preview(
+        [
+            new("nzxt", "NZXT controller", "Aer RGB 2 140 mm fan, Aer RGB 2 140 mm fan · HUE 2 LED strip 300 mm", true),
+            new("msi", "Motherboard (MSI Mystic Light)", "RGB and ARGB headers", true),
+            new("corsair", "Corsair Commander CORE", "Cooler pump and fans", true),
+        ], "Coolant 34.5 °C · pump 100% · fans 52%");
         foreach (var theme in new[] { "light", "dark" })
         {
             ApplyTheme(theme);
             // Mica isn't captured by RenderTargetBitmap: paint its typical base colour instead.
             Root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 theme == "dark" ? Color.FromArgb(255, 0x20, 0x20, 0x20) : Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
-            foreach (var tag in new[] { "home", "light", "music", "ac", "settings" })
+            foreach (var tag in new[] { "home", "light", "music", "ac", "pc", "settings" })
             {
                 ShowPage(tag);
                 await Task.Delay(900);
@@ -227,6 +236,9 @@ public sealed partial class MainWindow : Window
         ShowPage("ac");
         await Task.Delay(1200);
         await SaveAsync(Root, Path.Combine(dir, "ac-narrow.png"));
+        ShowPage("pc");
+        await Task.Delay(1200);
+        await SaveAsync(Root, Path.Combine(dir, "pc-narrow.png"));
 
         // The quick panel, every tab.
         await new QuickPanel().CaptureAsync(dir, SaveAsync);

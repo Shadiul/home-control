@@ -1,5 +1,6 @@
 using System.Text.Json;
 using LedControl.Core;
+using LedControl.Core.Rgb;
 using LedControl.Music;
 using LedControl.Shell;
 using Microsoft.UI.Dispatching;
@@ -19,6 +20,11 @@ public partial class App : Application
     public MainWindow Window { get; private set; } = null!;
     public DispatcherQueue UI { get; private set; } = null!;
     public bool TrayAvailable => tray?.IsCreated == true;
+
+    /// <summary>The PC's own RGB lighting (NZXT, MSI and Corsair controllers).</summary>
+    public PcLighting Pc { get; } = new();
+    /// <summary>PC lighting status or state changed (raised on the UI thread).</summary>
+    public event Action? PcChanged;
 
     readonly string[] args;
     Tray? tray;
@@ -85,8 +91,61 @@ public partial class App : Application
         }
         Session.Start();
         Acs.Start();
+        StartPcLighting();
         if (!args.Contains("--minimized") || !TrayAvailable) Window.ShowAndFocus();
         if (selfTest != null) _ = RunSelfTestAsync(selfTest);
+    }
+
+    // ------------------------------------------------------------ PC lighting
+
+    void StartPcLighting()
+    {
+        Pc.Changed += () => UI.TryEnqueue(() => PcChanged?.Invoke());
+        // Music sync's colours, straight from the engine's thread (the service coalesces them).
+        Music.Frame += f =>
+        {
+            var p = Config.Pc;
+            if (!p.Enabled || !p.On || !p.FollowMusic) return;
+            var (r, g, b) = ColorMath.HsvToRgb(f.H, f.S, Math.Clamp(f.V, 0, 1) * p.Brightness / 100.0);
+            Pc.Frame(r, g, b);
+        };
+        Session.MusicChanged += () => { if (!Session.MusicRunning) Pc.EndFrames(); };
+        Session.Changed += () => { if (Config.Pc.FollowRoom) ApplyPcLighting(save: false); };
+        // Give the Corsair hub back to its own cooling curves however the app ends.
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Pc.Stop();
+        if (Config.Pc.Enabled) Pc.Start(PcState());
+    }
+
+    /// <summary>The PC lighting state from the settings (and the room light, when following it).</summary>
+    public PcLightingState PcState()
+    {
+        var p = Config.Pc;
+        int rgb = p.Rgb;
+        if (p.FollowRoom && Session.Shown is { On: true } s)
+        {
+            var (r, g, b) = s.Rgb;
+            rgb = r << 16 | g << 8 | b;
+        }
+        return new PcLightingState(p.On, (byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, p.Brightness);
+    }
+
+    /// <summary>Sends the settings to the PC's lights, and saves them.</summary>
+    public void ApplyPcLighting(bool save = true)
+    {
+        Pc.Set(PcState());
+        PcChanged?.Invoke();
+        if (!save) return;
+        try { Config.Save(); } catch (Exception e) { Log("Saving settings failed: " + e.Message); }
+    }
+
+    /// <summary>Lets the app run the PC's lights, or hands every controller back to its own lighting.</summary>
+    public void SetPcLightingEnabled(bool enabled)
+    {
+        Config.Pc.Enabled = enabled;
+        try { Config.Save(); } catch (Exception e) { Log("Saving settings failed: " + e.Message); }
+        if (enabled) Pc.Start(PcState());
+        else Task.Run(Pc.Stop); // Stop waits for the worker; keep the UI responsive
+        PcChanged?.Invoke();
     }
 
     string? ArgValue(string name)
@@ -131,6 +190,7 @@ public partial class App : Application
         quitting = true;
         Session.Shutdown(); // stops music sync and restores the light
         Acs.Stop();
+        Pc.Stop(); // hands the Corsair hub back to its own pump and fan curves
         tray?.Dispose();
         Controller.Dispose();
         Exit();

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="LedControl.Pages.PcPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:LedControl.Controls"
+    xmlns:tk="using:CommunityToolkit.WinUI.Controls"
+    NavigationCacheMode="Required">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Padding="{StaticResource PagePadding}">
+            <StackPanel MaxWidth="{StaticResource PageMaxWidth}" Spacing="24">
+
+                <!-- Title with how the controllers are doing; power on the right -->
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="PC lighting" Style="{StaticResource TitleTextBlockStyle}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <Ellipse x:Name="StatusDot" Width="8" Height="8" VerticalAlignment="Center" />
+                            <TextBlock x:Name="StatusText" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock x:Name="PowerText" FontSize="14" VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="PowerSwitch" OnContent="" OffContent="" MinWidth="0" Margin="0,0,-12,0"
+                                      Toggled="Power_Toggled" AutomationProperties.Name="PC lights on or off" />
+                    </StackPanel>
+                </Grid>
+
+                <InfoBar x:Name="ConflictBar" Severity="Warning" Title="Another lighting app is running" IsClosable="False" Visibility="Collapsed" />
+                <InfoBar x:Name="HandedBackBar" Severity="Informational" Title="Home Control isn't running the PC's lights"
+                         Message="The fans, cooler and LED strip show their own lighting. Turn this on to set their colour here."
+                         IsClosable="False" Visibility="Collapsed">
+                    <InfoBar.ActionButton>
+                        <Button Content="Turn on" Click="Enable_Click" />
+                    </InfoBar.ActionButton>
+                </InfoBar>
+
+                <!-- Preview beside the controls on wide windows; the two cards stretch to the same height -->
+                <Grid x:Name="Split" ColumnSpacing="16" RowSpacing="16" SizeChanged="Split_SizeChanged">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.25*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border x:Name="PreviewCard" Style="{StaticResource Card}" Padding="16">
+                        <Grid RowSpacing="14">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Button x:Name="PreviewButton" Style="{StaticResource BareButton}" Click="Preview_Click" MinHeight="260"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch" CornerRadius="6" AutomationProperties.Name="Turn the PC lights on or off">
+                                <Grid x:Name="Stage" CornerRadius="6" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                                    <Border x:Name="StageGlow" />
+                                    <Viewbox x:Name="CaseBox" Width="288" Height="264" />
+                                </Grid>
+                            </Button>
+                            <StackPanel Grid.Row="1">
+                                <TextBlock x:Name="Headline" FontSize="20" FontWeight="SemiBold" />
+                                <TextBlock x:Name="SubLine" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Controls: lit by a soft wash of the chosen colour -->
+                    <Border x:Name="ControlsCard" Grid.Column="1" Style="{StaticResource Card}" Padding="0">
+                        <Grid>
+                            <Border x:Name="Wash" CornerRadius="8" IsHitTestVisible="False" />
+                            <Grid Padding="18">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="20" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="20" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Brightness -->
+                                <StackPanel Spacing="6">
+                                    <Grid>
+                                        <TextBlock Text="Brightness" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border x:Name="BrightnessPill" HorizontalAlignment="Right" MinWidth="44" Padding="8,3" CornerRadius="10">
+                                            <TextBlock x:Name="BrightnessText" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                    <Grid x:Name="BrightnessRow" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Colour: whites and colours as the shared swatch tiles, and Custom -->
+                                <StackPanel Grid.Row="2" Spacing="12">
+                                    <Grid>
+                                        <TextBlock Text="Colour" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border x:Name="ColourPill" HorizontalAlignment="Right" Padding="10,3" CornerRadius="10">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Ellipse x:Name="ColourDot" Width="10" Height="10" VerticalAlignment="Center" />
+                                                <TextBlock x:Name="ColourNameText" FontSize="13" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                    <c:AdaptiveGrid x:Name="SwatchGrid" MinItemWidth="1" MaxColumns="7" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Colours" />
+                                </StackPanel>
+
+                                <!-- Follow: music sync's colours and the room light's colour -->
+                                <StackPanel Grid.Row="4" Spacing="6">
+                                    <TextBlock Text="Follow" FontSize="14" FontWeight="SemiBold" />
+                                    <c:AdaptiveGrid x:Name="FollowGrid" MinItemWidth="1" MaxColumns="2" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Follow" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Devices: one Settings-style card per controller, then the switch that hands them back -->
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Devices" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,0,0,4" />
+                    <StackPanel x:Name="DeviceList" Spacing="4" />
+                    <tk:SettingsCard Header="Let Home Control run the PC's lights"
+                                     Description="While it does, it also keeps the Corsair cooler's pump at full speed and sets the fans from the coolant temperature, because the cooler only takes colours that way. Turn this off to give every controller back its own lighting and cooling.">
+                        <tk:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7F4;" />
+                        </tk:SettingsCard.HeaderIcon>
+                        <ToggleSwitch x:Name="EnabledSwitch" Toggled="Enabled_Toggled" AutomationProperties.Name="Let Home Control run the PC's lights" />
+                    </tk:SettingsCard>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>
