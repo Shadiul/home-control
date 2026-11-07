@@ -21,6 +21,35 @@ static class RgbProbe
                 Console.WriteLine($"{i.Vid:X4}:{i.Pid:X4} v{i.Version:X4}  page {i.UsagePage:X4} usage {i.Usage:X4}  in {i.InputLength} out {i.OutputLength} feature {i.FeatureLength}  \"{i.Product}\"");
             return;
         }
+        if (what == "all")
+        {
+            // rgb all seconds: runs the PC lighting service: warm white, then a colour sweep like music sync, then hands back.
+            int secs = args.Length > 2 ? int.Parse(args[2]) : 10;
+            using var pc = new PcLighting();
+            pc.Changed += () => { };
+            pc.Start(PcLightingState.Default);
+            for (int i = 0; i < 40 && pc.StatusKind == "busy"; i++) Thread.Sleep(250);
+            Console.WriteLine($"status {pc.StatusKind}: {pc.StatusText}");
+            foreach (var d in pc.Devices) Console.WriteLine($"  {d.Name}: {(d.Ok ? "ok" : "failed")} {d.Detail} {d.Error}");
+            Thread.Sleep(3000);
+            Console.WriteLine($"  warm white · {pc.CoolingText}");
+            var until = DateTime.Now.AddSeconds(secs);
+            double h = 0;
+            while (DateTime.Now < until)
+            {
+                var (r, g, b) = LedControl.Core.ColorMath.HsvToRgb((int)h % 360, 1, 1);
+                pc.Frame(r, g, b);
+                h += 6;
+                Thread.Sleep(33);
+            }
+            pc.EndFrames();
+            Thread.Sleep(1500);
+            Console.WriteLine($"  sweep done · {pc.CoolingText} · status {pc.StatusKind} {pc.StatusText}");
+            pc.Stop();
+            using var check = CorsairCommanderCore.Open(CorsairCommanderCore.Find()!);
+            Console.WriteLine($"stopped; Corsair mode now {check.Mode()} (1 = hardware)");
+            return;
+        }
         if (what == "corsair")
         {
             // Read-only: firmware and mode properties, which don't take the device out of hardware mode.
