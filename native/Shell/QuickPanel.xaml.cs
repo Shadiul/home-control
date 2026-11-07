@@ -32,6 +32,11 @@ public sealed partial class QuickPanel : Window
     const string WarmthIcon = "M12 3a2 2 0 0 0-2 2v9.3a4 4 0 1 0 4 0V5a2 2 0 0 0-2-2zM12 17.5v-6";
     const string FanIcon = "M12 12c-1-4 0-8 3-8.5s3 4.5-3 8.5zM12 12c4-1 8 0 8.5 3s-4.5 3-8.5-3zM12 12c1 4 0 8-3 8.5s-3-4.5 3-8.5zM12 12c-4 1-8 0-8.5-3s4.5-3 8.5 3z";
     const string MicIcon = "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21";
+    const string PcIcon = "M7.5 3h9a1.5 1.5 0 0 1 1.5 1.5v15a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 19.5v-15A1.5 1.5 0 0 1 7.5 3zM9 7h6M9 10h6M12 16.5h.01";
+
+    // PC lighting colours: two whites and six colours.
+    static readonly (string Name, uint Rgb)[] PcColours =
+        [("Warm white", 0xFFC47E), ("Cool white", 0xEEF4FF), ("Red", 0xE8453C), ("Orange", 0xF2802E), ("Green", 0x3DAA67), ("Teal", 0x2BB5A8), ("Blue", 0x3E6FE0), ("Purple", 0xA85BD8)];
 
     static readonly Color Violet = Paint.Hex(0x8A5BE0), Ice = Paint.Hex(0x3A9EE8), Grey = Paint.Hex(0x8A8A8A);
 
@@ -89,8 +94,8 @@ public sealed partial class QuickPanel : Window
         public required Border Bar;
         public required TextBlock Name;
         public required Path[] Icon;
-        public AcUnit? Unit;      // null: the light or music sync
-        public bool IsMusic;
+        public AcUnit? Unit;      // null: the light, music sync or PC lighting
+        public bool IsMusic, IsPc;
     }
 
     readonly IntPtr hwnd;
@@ -100,7 +105,8 @@ public sealed partial class QuickPanel : Window
     readonly BigBulb bulb = new();
     readonly AcFrontArt acArt = new();
     readonly SpeakerCone speaker = new();
-    readonly Viewbox bulbFrame, acFrame, speakerFrame;
+    readonly PcCaseArt pcArt = new();
+    readonly Viewbox bulbFrame, acFrame, speakerFrame, pcFrame;
     readonly DispatcherQueueTimer saveTimer;
     readonly Dictionary<string, int> lastFan = [];
     Tab? current;
@@ -118,6 +124,7 @@ public sealed partial class QuickPanel : Window
         bulbFrame = new Viewbox { Height = 105, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 11, 0, 0), Child = bulb };
         acFrame = new Viewbox { Height = 120, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 10, 0, 0), Child = acArt };
         speakerFrame = new Viewbox { Height = 150, VerticalAlignment = VerticalAlignment.Top, Child = speaker };
+        pcFrame = new Viewbox { Height = 112, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 8, 0, 0), Child = pcArt };
         AppWindow.Title = AppInfo.Name;
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico"));
         AppWindow.IsShownInSwitchers = false;
@@ -145,6 +152,7 @@ public sealed partial class QuickPanel : Window
         Session.MusicChanged += Refresh;
         Host.Acs.Changed += Refresh;
         Host.Acs.ListChanged += BuildTabs;
+        Host.PcChanged += Refresh;
         Root.ActualThemeChanged += (_, _) => Refresh();
         BuildTabs();
     }
@@ -219,8 +227,10 @@ public sealed partial class QuickPanel : Window
         AddTab("Light", BulbIcon, null, false);
         foreach (var u in Host.Acs.Units) AddTab(ShortName(u), SnowIcon, u, false);
         AddTab("Music", NoteIcon, null, true);
+        AddTab("PC", PcIcon, null, false, pc: true);
         current = tabs.FirstOrDefault(t => keep != null && t.Unit == keep.Unit && t.IsMusic == keep.IsMusic && t.Unit != null)
                ?? tabs.FirstOrDefault(t => keep?.IsMusic == true && t.IsMusic)
+               ?? tabs.FirstOrDefault(t => keep?.IsPc == true && t.IsPc)
                ?? tabs[0];
         ShowTab();
     }
@@ -232,7 +242,7 @@ public sealed partial class QuickPanel : Window
         return "AC " + (App.Instance!.Acs.Units.IndexOf(u) + 1);
     }
 
-    void AddTab(string name, string icon, AcUnit? unit, bool music)
+    void AddTab(string name, string icon, AcUnit? unit, bool music, bool pc = false)
     {
         var (box, strokes) = Draw.LineIcon(icon, 20);
         var dot = new Ellipse { Width = 8, Height = 8, StrokeThickness = 1.5, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, -2, -5, 0) };
@@ -253,8 +263,8 @@ public sealed partial class QuickPanel : Window
             HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, Content = face,
         };
         AutomationProperties.SetName(button, name);
-        ToolTipService.SetToolTip(button, unit?.Config.DisplayName ?? (music ? "Music sync" : "Light"));
-        var tab = new Tab { Button = button, Face = face, Dot = dot, Bar = bar, Name = label, Icon = strokes, Unit = unit, IsMusic = music };
+        ToolTipService.SetToolTip(button, unit?.Config.DisplayName ?? (music ? "Music sync" : pc ? "PC lighting" : "Light"));
+        var tab = new Tab { Button = button, Face = face, Dot = dot, Bar = bar, Name = label, Icon = strokes, Unit = unit, IsMusic = music, IsPc = pc };
         button.Click += (_, _) =>
         {
             current = tab;
@@ -276,6 +286,7 @@ public sealed partial class QuickPanel : Window
         TempRow.Visibility = current.Unit != null ? Visibility.Visible : Visibility.Collapsed;
         if (current.Unit is { } unit) BuildAc(unit);
         else if (current.IsMusic) BuildMusic();
+        else if (current.IsPc) BuildPc();
         else BuildLight();
         Refresh();
     }
@@ -650,6 +661,87 @@ public sealed partial class QuickPanel : Window
         SetWash(Violet, running);
     }
 
+    // ------------------------------------------------------------ PC lighting
+
+    static PcLightingPrefs PcPrefs => Host.Config.Pc;
+
+    void BuildPc()
+    {
+        ArtHost.Content = pcFrame;
+
+        var bright = new FillSlider("Brightness", SunIcon) { Minimum = 1, Maximum = 100, LargeChange = 10 };
+        bright.ValueChanged += v =>
+        {
+            PcPrefs.Brightness = (int)v;
+            PcPrefs.On = true;
+            Host.ApplyPcLighting();
+        };
+        Controls.Children.Add(bright);
+        updaters.Add(p =>
+        {
+            var st = Host.PcState();
+            bool on = PcPrefs.Enabled && st.On;
+            if (!bright.IsDragging) bright.Value = st.Brightness;
+            bright.Text = $"{st.Brightness}%";
+            bright.SetColours(p, null, FillSlider.FillOf(on ? Color.FromArgb(255, st.R, st.G, st.B) : Grey), p.Text);
+            bright.IsEnabled = PcPrefs.Enabled;
+        });
+
+        var swatches = new List<FrameworkElement>();
+        foreach (var (name, rgb) in PcColours)
+        {
+            var tile = new SwatchTile(name, Paint.Hex(rgb));
+            tile.Click += (_, _) =>
+            {
+                PcPrefs.Rgb = (int)rgb;
+                PcPrefs.On = true;
+                PcPrefs.FollowRoom = false;
+                Host.ApplyPcLighting();
+            };
+            updaters.Add(p =>
+            {
+                tile.Show(p, PcPrefs.Enabled && !PcPrefs.FollowRoom && PcPrefs.Rgb == (int)rgb, TraySurface(p));
+                tile.IsEnabled = PcPrefs.Enabled;
+            });
+            swatches.Add(tile);
+        }
+        AddGroup("Colour", 8, swatches);
+
+        var music = new ChipTile("Music sync", NoteIcon, Violet, row: true, height: 44, labelSize: 13);
+        music.Click += (_, _) => { PcPrefs.FollowMusic = !PcPrefs.FollowMusic; Host.ApplyPcLighting(); };
+        var room = new ChipTile("Room light", BulbIcon, Paint.Hex(0xE8A33C), row: true, height: 44, labelSize: 13);
+        room.Click += (_, _) => { PcPrefs.FollowRoom = !PcPrefs.FollowRoom; Host.ApplyPcLighting(); };
+        updaters.Add(p =>
+        {
+            music.Show(p, PcPrefs.FollowMusic, PcPrefs.Enabled);
+            room.Show(p, PcPrefs.FollowRoom, PcPrefs.Enabled);
+        });
+        AddGroup("Follow", 2, [music, room]);
+    }
+
+    void ShowPc(Palette p)
+    {
+        var st = Host.PcState();
+        bool enabled = PcPrefs.Enabled, on = enabled && st.On;
+        var c = Color.FromArgb(255, st.R, st.G, st.B);
+        var pc = Host.Pc;
+        string status = !enabled ? "Handed back to the devices' own lighting"
+            : pc.StatusKind is "error" or "conflict" ? pc.StatusText
+            : !on ? "Off"
+            : PcPrefs.FollowMusic && Session.MusicRunning ? "Following music sync"
+            : pc.CoolingText.Length > 0 ? pc.CoolingText
+            : $"{st.Brightness}%";
+        if (on)
+            SetStage(Paint.Hex(0x2A2A2E), Paint.Hex(0x141416),
+                Draw.Radial(new(0.5, 0.4), 0.7, 0.7, (0, Paint.WithAlpha(c, 0.35)), (0.45, Paint.WithAlpha(c, 0.09)), (0.7, Paint.WithAlpha(c, 0))),
+                "PC lighting", status, true, "Turn the PC lights off", enabled, p);
+        else
+            SetStage(Paint.Hex(0x3A3B3F), Paint.Hex(0x242528), null, "PC lighting", status, false, "Turn the PC lights on", enabled, p);
+        pcArt.Show(on, c, st.Brightness / 100.0);
+        AutomationProperties.SetName(ArtHost, on ? $"PC lit at {st.Brightness}%" : "PC lights off");
+        SetWash(c, on);
+    }
+
     // ------------------------------------------------------------ showing the state
 
     void Refresh()
@@ -665,7 +757,8 @@ public sealed partial class QuickPanel : Window
             foreach (var t in tabs)
             {
                 bool sel = t == current;
-                bool on = t.Unit != null ? t.Unit.Shown?.On == true : t.IsMusic ? Session.MusicRunning : Session.Shown?.On == true;
+                bool on = t.Unit != null ? t.Unit.Shown?.On == true : t.IsMusic ? Session.MusicRunning
+                        : t.IsPc ? PcPrefs.Enabled && PcPrefs.On : Session.Shown?.On == true;
                 t.Face.Background = Palette.B(sel ? (p.Dark ? Paint.Hex(0x3A3A3A) : Paint.Hex(0xFFFFFF)) : Paint.Hex(0, 0));
                 t.Bar.Background = Palette.B(sel ? p.Accent : Paint.Hex(0, 0));
                 t.Name.Foreground = Palette.B(sel ? p.Text : p.Text2);
@@ -678,6 +771,7 @@ public sealed partial class QuickPanel : Window
 
             if (current.Unit is { } unit) ShowAc(unit, p);
             else if (current.IsMusic) ShowMusic(p);
+            else if (current.IsPc) ShowPc(p);
             else ShowLight(p);
             foreach (var t in titles) t.Foreground = Palette.B(p.Text3);
             foreach (var update in updaters) update(p);
@@ -723,6 +817,11 @@ public sealed partial class QuickPanel : Window
     {
         if (current?.Unit is { } unit) unit.TogglePower();
         else if (current?.IsMusic == true) Session.ToggleMusic();
+        else if (current?.IsPc == true)
+        {
+            PcPrefs.On = !PcPrefs.On;
+            Host.ApplyPcLighting();
+        }
         else if (Session.Shown != null) Session.TogglePower();
         Refresh();
     }
@@ -748,7 +847,7 @@ public sealed partial class QuickPanel : Window
         if (current?.Unit is { } unit) Host.Window.ShowAc(unit);
         else
         {
-            Host.Window.ShowPage(current?.IsMusic == true ? "music" : "light");
+            Host.Window.ShowPage(current?.IsMusic == true ? "music" : current?.IsPc == true ? "pc" : "light");
             Host.Window.ShowAndFocus();
         }
     }
