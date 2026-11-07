@@ -53,7 +53,7 @@ public sealed partial class SwatchTile : Button
         tile = new Border { CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1) };
         hover = new Border { CornerRadius = new CornerRadius(12), Background = Paint.Brush(0x808080, 0x14), Opacity = 0 };
         ring = new Border { CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(2), BorderBrush = new SolidColorBrush(colour), Opacity = 0 };
-        glow = new Ellipse { Width = 44, Height = 44, Opacity = 0, IsHitTestVisible = false, Fill = Glow.Soft(colour, 0.7) };
+        glow = new Ellipse { Width = 44, Height = 44, Margin = new Thickness(-10), Opacity = 0, IsHitTestVisible = false, Fill = Glow.Soft(colour, 0.7) };
         var swatch = face ?? new Ellipse
         {
             Width = 24, Height = 24, Fill = new SolidColorBrush(colour), Stroke = Paint.Brush(0, 0x1A), StrokeThickness = 1,
@@ -109,5 +109,91 @@ public sealed partial class SwatchTile : Button
             },
         };
         return new Grid { Width = 24, Height = 24, Children = { wheel, badge } };
+    }
+}
+
+/// <summary>
+/// A tile button with 12px corners: an icon over a label (or beside it), or a number and a short label.
+/// It sits on the translucent tile surface and, picked, fills with its own colour.
+/// </summary>
+public sealed partial class ChipTile : Button
+{
+    readonly Border shadow, face, hover;
+    readonly TextBlock label;
+    readonly TextBlock? number;
+    readonly Path[] icon = [];
+    Color colour;
+
+    public ChipTile(string text, string? iconData, Color colour, bool row = false, double height = 52, double labelSize = 11, string? num = null)
+    {
+        Style = (Style)Application.Current.Resources["BareButton"];
+        Height = height;
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+        HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        VerticalContentAlignment = VerticalAlignment.Stretch;
+        shadow = Glow.Shadow();
+        label = new TextBlock
+        {
+            Text = text, FontSize = labelSize, TextTrimming = TextTrimming.CharacterEllipsis,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+        };
+        var content = new StackPanel
+        {
+            Orientation = row ? Orientation.Horizontal : Orientation.Vertical, Spacing = row ? (num != null ? 4 : 8) : 3,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(6, 0, 6, 0),
+        };
+        if (iconData != null)
+        {
+            var (box, strokes) = Draw.LineIcon(iconData, 18);
+            box.HorizontalAlignment = HorizontalAlignment.Center;
+            box.VerticalAlignment = VerticalAlignment.Center;
+            icon = strokes;
+            content.Children.Add(box);
+        }
+        if (num != null)
+        {
+            number = new TextBlock { Text = num, FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+            content.Children.Add(number);
+        }
+        content.Children.Add(label);
+        face = new Border { CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1), Child = content };
+        hover = new Border { CornerRadius = new CornerRadius(12), Background = Paint.Brush(0x808080, 0x14), Opacity = 0, IsHitTestVisible = false };
+        Content = new Grid { Children = { shadow, face, hover } };
+        Colour = colour;
+        AutomationProperties.SetName(this, text);
+        ToolTipService.SetToolTip(this, text);
+        PointerEntered += (_, _) => hover.Opacity = 1;
+        PointerExited += (_, _) => hover.Opacity = 0;
+    }
+
+    /// <summary>The colour the tile fills with when picked.</summary>
+    public Color Colour
+    {
+        get => colour;
+        set
+        {
+            colour = value;
+            shadow.Background = Glow.Soft(value, 0.33);
+        }
+    }
+
+    public string Label
+    {
+        get => label.Text;
+        set => label.Text = value;
+    }
+
+    public void Show(Palette p, bool picked, bool enabled = true, Color? pickedText = null)
+    {
+        var fg = picked ? pickedText ?? Paint.Hex(0xFFFFFF) : p.Text;
+        face.Background = Palette.B(picked ? colour : p.Tile);
+        face.BorderBrush = Palette.B(picked ? colour : p.TileStroke);
+        shadow.Opacity = picked ? 1 : 0;
+        label.Foreground = Palette.B(fg);
+        if (number != null) number.Foreground = Palette.B(fg);
+        Draw.Tint(icon, fg);
+        IsEnabled = enabled;
+        Opacity = enabled ? 1 : 0.45;
+        AutomationProperties.SetItemStatus(this, picked ? "Selected" : "");
     }
 }

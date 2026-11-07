@@ -8,7 +8,6 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.Graphics;
@@ -19,8 +18,9 @@ namespace LedControl.Shell;
 
 /// <summary>
 /// The quick panel: click the notification-area icon to open it just above the taskbar. One tab per device
-/// (light, each air conditioner, music sync) with a picture of the device lit by its state, a big power button,
-/// its main controls, and chips for colours, modes or styles. It hides when you click anywhere else.
+/// (light, each air conditioner, music sync) with a picture of the device lit by its state and a big power
+/// button, then its controls on a soft wash of its colour: fill sliders and tiles. It hides when you click
+/// anywhere else.
 /// </summary>
 public sealed partial class QuickPanel : Window
 {
@@ -28,17 +28,49 @@ public sealed partial class QuickPanel : Window
     const string BulbIcon = "M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2v.5h5V16c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z";
     const string SnowIcon = "M12 2.5v19M3.8 7.3l16.4 9.4M20.2 7.3 3.8 16.7M9.5 4.5 12 6l2.5-1.5M9.5 19.5 12 18l2.5 1.5";
     const string NoteIcon = "M9 18V5.5l11-2V16M6.5 20.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zM17.5 18.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z";
+    const string SunIcon = "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4";
+    const string WarmthIcon = "M12 3a2 2 0 0 0-2 2v9.3a4 4 0 1 0 4 0V5a2 2 0 0 0-2-2zM12 17.5v-6";
+    const string FanIcon = "M12 12c-1-4 0-8 3-8.5s3 4.5-3 8.5zM12 12c4-1 8 0 8.5 3s-4.5 3-8.5-3zM12 12c1 4 0 8-3 8.5s-3-4.5 3-8.5zM12 12c-4 1-8 0-8.5-3s4.5-3 8.5 3z";
+    const string MicIcon = "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21";
 
-    static readonly (string Name, uint Rgb, int Temp)[] LightChips =
-        [("Warm", 0xFFC47E, 0), ("Cool", 0xEEF4FF, 100), ("Red", 0xE8453C, -1), ("Green", 0x3DAA67, -1), ("Blue", 0x3E6FE0, -1), ("Purple", 0xA85BD8, -1)];
+    static readonly Color Violet = Paint.Hex(0x8A5BE0), Ice = Paint.Hex(0x3A9EE8), Grey = Paint.Hex(0x8A8A8A);
 
-    static readonly string[] ModeIcons =
+    // Colours for the light and for music sync's Pulse style: name and the colour shown.
+    static readonly (string Name, uint Rgb)[] Hues =
+        [("Red", 0xE8453C), ("Orange", 0xF2802E), ("Yellow", 0xF2D33C), ("Green", 0x3DAA67), ("Teal", 0x2BB5A8), ("Blue", 0x3E6FE0), ("Purple", 0xA85BD8), ("Pink", 0xE05B9E)];
+
+    // Music sync's Pulse hues, in the same order (the values the Music sync page uses).
+    static readonly int[] PulseHues = [0, 25, 50, 130, 190, 230, 280, 320];
+
+    static readonly Dictionary<string, string> SceneIcons = new()
+    {
+        ["Bright"] = SunIcon,
+        ["Reading"] = "M4 5.5C6.5 4 9.5 4 12 6c2.5-2 5.5-2 8-.5V19c-2.5-1.5-5.5-1.5-8 .5-2.5-2-5.5-2-8-.5zM12 6v13.5",
+        ["Relax"] = "M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5zM16 10h1.5a2.5 2.5 0 0 1 0 5H16M8.5 3.5c0 1.5 1 1.5 1 3M12.5 3.5c0 1.5 1 1.5 1 3",
+        ["Night"] = "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
+        ["Movie"] = "M4 5h16v14H4zM8 5v14M16 5v14M4 9.5h4M4 14.5h4M16 9.5h4M16 14.5h4",
+        ["Party"] = "M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.3z",
+    };
+
+    // Air conditioner modes: icon and colour.
+    static readonly (string Icon, uint Colour)[] Modes =
     [
-        "M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6",
-        SnowIcon,
-        "M12 3.5s6 6.4 6 10.9a6 6 0 0 1-12 0c0-4.5 6-10.9 6-10.9z",
-        "M12 12c-1-4 0-8 3-8.5s3 4.5-3 8.5zM12 12c4-1 8 0 8.5 3s-4.5 3-8.5-3zM12 12c1 4 0 8-3 8.5s-3-4.5 3-8.5zM12 12c-4 1-8 0-8.5-3s4.5-3 8.5 3z",
-        "M12 3c.8 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.4-4.9.4 1.9 1.4 2.9 2.4 2.9-.2-3 .2-5.4.2-8z",
+        ("M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6", 0x0F8A7E),
+        (SnowIcon, 0x2F7FD8),
+        ("M12 3.5s6 6.4 6 10.9a6 6 0 0 1-12 0c0-4.5 6-10.9 6-10.9z", 0x1C8FB0),
+        (FanIcon, 0x5A6B7D),
+        ("M12 3c.8 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.4-4.9.4 1.9 1.4 2.9 2.4 2.9-.2-3 .2-5.4.2-8z", 0xD9622B),
+    ];
+
+    // Air conditioner options: name, what it does, Gree key, icon, colour.
+    static readonly (string Name, string Says, string Key, string Icon, uint Colour)[] Options =
+    [
+        ("Turbo", "Turbo: full power to reach the target fast", "Tur", "M13 2 4 14h7l-1 8 9-12h-7z", 0xD9480F),
+        ("Quiet", "Quiet: lower fan noise", "Quiet", "M4 9h4l5-4v14l-5-4H4zM17 9.5l4 5M21 9.5l-4 5", 0x4C5BD4),
+        ("Sleep", "Sleep: eases the temperature overnight", "SwhSlp", "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z", 0x7048C2),
+        ("Swing ↕", "Swing up and down", "SwUpDn", "M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4", 0x2F7FD8),
+        ("Swing ↔", "Swing left and right", "SwingLfRig", "M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4", 0x2F7FD8),
+        ("Display", "Display light on the unit", "Lig", "M4 6h16v10H4zM9 20h6M12 16v4", 0x0B8578),
     ];
 
     static readonly (string Key, string Name, string Icon)[] Styles =
@@ -63,25 +95,29 @@ public sealed partial class QuickPanel : Window
 
     readonly IntPtr hwnd;
     readonly List<Tab> tabs = [];
-    readonly List<(ButtonBase Button, Path[]? Icon, Func<bool> Selected, bool Swatch)> chips = [];
+    readonly List<Action<Palette>> updaters = []; // each control of the shown tab, brought up to date
+    readonly List<TextBlock> titles = [];
     readonly BigBulb bulb = new();
     readonly AcFrontArt acArt = new();
     readonly SpeakerCone speaker = new();
-    readonly Viewbox bulbFrame, acFrame;
+    readonly Viewbox bulbFrame, acFrame, speakerFrame;
     readonly DispatcherQueueTimer saveTimer;
+    readonly Dictionary<string, int> lastFan = [];
     Tab? current;
     bool syncing;
     long hiddenAt;
 
     static App Host => App.Instance!;
     static LightSession Session => Host.Session;
+    static MusicPrefs Prefs => Host.Config.Music;
 
     public QuickPanel()
     {
         InitializeComponent();
         hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        bulbFrame = new Viewbox { Height = 140, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 14, 0, 0), Child = bulb };
-        acFrame = new Viewbox { Height = 150, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 8, 0, 0), Child = acArt };
+        bulbFrame = new Viewbox { Height = 105, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 11, 0, 0), Child = bulb };
+        acFrame = new Viewbox { Height = 120, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 10, 0, 0), Child = acArt };
+        speakerFrame = new Viewbox { Height = 150, VerticalAlignment = VerticalAlignment.Top, Child = speaker };
         AppWindow.Title = AppInfo.Name;
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico"));
         AppWindow.IsShownInSwitchers = false;
@@ -107,7 +143,6 @@ public sealed partial class QuickPanel : Window
 
         Session.Changed += Refresh;
         Session.MusicChanged += Refresh;
-        Session.MusicFrame += OnMusicFrame;
         Host.Acs.Changed += Refresh;
         Host.Acs.ListChanged += BuildTabs;
         Root.ActualThemeChanged += (_, _) => Refresh();
@@ -135,8 +170,8 @@ public sealed partial class QuickPanel : Window
     {
         ApplyTheme(Host.Config.Theme);
         Place();
-        Refresh();
         AppWindow.Show();
+        ShowTab();
         Activate();
         WinIntegration.SetForegroundWindow(hwnd);
     }
@@ -145,6 +180,7 @@ public sealed partial class QuickPanel : Window
     {
         hiddenAt = Environment.TickCount64;
         AppWindow.Hide();
+        speaker.Show(false); // no animation while hidden
     }
 
     void ApplyTheme(string theme) => Root.RequestedTheme = theme switch
@@ -234,100 +270,384 @@ public sealed partial class QuickPanel : Window
     void ShowTab()
     {
         if (current == null) return;
-        syncing = true;
-        chips.Clear();
-        Chips.Children.Clear();
-        Chips.ColumnDefinitions.Clear();
+        updaters.Clear();
+        titles.Clear();
+        Controls.Children.Clear();
         TempRow.Visibility = current.Unit != null ? Visibility.Visible : Visibility.Collapsed;
-
-        if (current.Unit is { } unit)
-        {
-            ArtHost.Content = acFrame;
-            SliderLabel.Text = "Fan speed";
-            MainSlider.Minimum = 1;
-            MainSlider.Maximum = 5;
-            AutomationProperties.SetName(MainSlider, "Fan speed");
-            ChipsTitle.Text = "Mode";
-            for (int m = 0; m < AcState.ModeNames.Length; m++)
-            {
-                int mode = m;
-                AddIconChip(AcState.ModeNames[m], ModeIcons[m], () => unit.Shown?.Mode == mode && unit.Shown != null, () => unit.Set(("Mod", mode)));
-            }
-            AddIconChip("Fan auto", "M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9", () => unit.Shown?.FanSpeed == 0,
-                () => ToggleFanAuto(unit));
-        }
-        else if (current.IsMusic)
-        {
-            ArtHost.Content = speaker;
-            SliderLabel.Text = "Sensitivity";
-            MainSlider.Minimum = 0;
-            MainSlider.Maximum = 100;
-            AutomationProperties.SetName(MainSlider, "Sensitivity");
-            ChipsTitle.Text = "Style";
-            foreach (var (key, name, icon) in Styles)
-                AddIconChip(name, icon, () => Host.Config.Music.Style == key, () =>
-                {
-                    Host.Config.Music.Style = key;
-                    SaveMusicPrefs();
-                    Refresh();
-                });
-        }
-        else
-        {
-            ArtHost.Content = bulbFrame;
-            SliderLabel.Text = "Brightness";
-            MainSlider.Minimum = 1;
-            MainSlider.Maximum = 100;
-            AutomationProperties.SetName(MainSlider, "Brightness");
-            ChipsTitle.Text = "Colour";
-            foreach (var (name, rgb, temp) in LightChips) AddSwatchChip(name, rgb, temp);
-        }
-        syncing = false;
+        if (current.Unit is { } unit) BuildAc(unit);
+        else if (current.IsMusic) BuildMusic();
+        else BuildLight();
         Refresh();
     }
 
-    // ------------------------------------------------------------ chips
+    // ------------------------------------------------------------ building blocks
 
-    void AddChip(ButtonBase button, Path[]? icon, Func<bool> selected, bool swatch)
+    /// <summary>A titled group of tiles in a grid of equal columns.</summary>
+    void AddGroup(string title, int columns, IReadOnlyList<FrameworkElement> items, Func<string>? liveTitle = null)
     {
-        Grid.SetColumn(button, chips.Count);
-        Chips.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        Chips.Children.Add(button);
-        chips.Add((button, icon, selected, swatch));
+        var heading = new TextBlock { Text = title, FontSize = 12, LineHeight = 16 };
+        titles.Add(heading);
+        if (liveTitle != null) updaters.Add(_ => heading.Text = liveTitle());
+        var grid = new AdaptiveGrid { MinItemWidth = 1, MaxColumns = columns, ColumnSpacing = 6, RowSpacing = 6 };
+        AutomationProperties.SetName(grid, title);
+        foreach (var item in items) grid.Children.Add(item);
+        Controls.Children.Add(new StackPanel { Spacing = 6, Children = { heading, grid } });
     }
 
-    void AddIconChip(string name, string icon, Func<bool> selected, Action pick)
-    {
-        var (box, strokes) = Draw.LineIcon(icon, 18);
-        var b = new ToggleButton
-        {
-            Height = 52, CornerRadius = new CornerRadius(10), Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
-            Content = new StackPanel { Spacing = 3, HorizontalAlignment = HorizontalAlignment.Center, Children = { box, new TextBlock { Text = name, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center } } },
-        };
-        AutomationProperties.SetName(b, name);
-        ToolTipService.SetToolTip(b, name);
-        b.Click += (_, _) => pick();
-        AddChip(b, strokes, selected, false);
-    }
+    static Color TraySurface(Palette p) => p.Dark ? Paint.Hex(0x323232) : Paint.Hex(0xFFFFFF);
 
-    void AddSwatchChip(string name, uint rgb, int temp)
+    static (int Hue, int Sat) HueSat(uint rgb)
     {
         var c = Paint.Hex(rgb);
-        var b = new SwatchTile(name, c);
         var (h, s, _) = ColorMath.RgbToHsv(c.R, c.G, c.B);
-        int hue = (int)Math.Round(h) % 360, sat = (int)Math.Round(s * 100);
-        b.Click += (_, _) =>
+        return ((int)Math.Round(h) % 360, (int)Math.Round(s * 100));
+    }
+
+    static bool NearHue(int a, int b, int within) => Math.Min(Math.Abs(a - b), 360 - Math.Abs(a - b)) <= within;
+
+    // ------------------------------------------------------------ the light
+
+    static int LightLevel(LightState? st) => st == null ? 50 : st.IsColour ? st.V : st.Brightness;
+
+    static string WarmthName(int temp) => temp < 35 ? "Warm" : temp < 70 ? "Neutral" : "Cool";
+
+    static Color LightColour(LightState? st) =>
+        st != null ? Color.FromArgb(255, st.Rgb.R, st.Rgb.G, st.Rgb.B) : Paint.Hex(0xFFC47E);
+
+    void BuildLight()
+    {
+        ArtHost.Content = bulbFrame;
+
+        var bright = new FillSlider("Brightness", SunIcon) { Minimum = 1, Maximum = 100, LargeChange = 10 };
+        bright.ValueChanged += v =>
         {
-            int level = (int)MainSlider.Value;
-            Session.Submit(temp >= 0 ? LightCommand.White(level, temp) : LightCommand.Colour(hue, sat, level));
+            var st = Session.Shown ?? new LightState();
+            Session.Submit(st.IsColour ? LightCommand.Colour(st.H, st.S, (int)v) : LightCommand.White((int)v, st.Temp));
         };
-        AddChip(b, null, () =>
+        Controls.Children.Add(bright);
+        updaters.Add(p =>
         {
             var st = Session.Shown;
-            if (st == null || !st.On) return false;
-            return temp >= 0 ? !st.IsColour && Math.Abs(st.Temp - temp) <= 10
-                             : st.IsColour && Math.Min(Math.Abs(st.H - hue), 360 - Math.Abs(st.H - hue)) <= 6 && Math.Abs(st.S - sat) <= 8;
-        }, true);
+            bool on = st?.On == true;
+            int level = Math.Max(1, LightLevel(st));
+            var col = !on ? Grey : st!.IsColour ? LightColour(st) : Paint.Hex(0xE8A33C);
+            if (!bright.IsDragging) bright.Value = level;
+            bright.Text = st != null ? $"{level}%" : "";
+            bright.SetColours(p, null, FillSlider.FillOf(col), p.Text);
+            bright.IsEnabled = st != null;
+        });
+
+        // Warmth: the track itself runs warm to cool, with just the grip. Moving it switches the light to white.
+        var warmth = new FillSlider("Warmth", WarmthIcon) { Minimum = 0, Maximum = 100, LargeChange = 10 };
+        var warmTrack = Draw.Gradient(new(0, 0), new(1, 0), (0, Paint.Hex(0xF2A541)), (0.45, Paint.Hex(0xFFE2B8)), (0.65, Paint.Hex(0xFFF8EE)), (1, Paint.Hex(0xC9DDFB)));
+        warmth.ValueChanged += v => Session.Submit(LightCommand.White(Math.Max(1, LightLevel(Session.Shown)), (int)v));
+        Controls.Children.Add(warmth);
+        updaters.Add(p =>
+        {
+            var st = Session.Shown;
+            int temp = st?.Temp ?? 0;
+            if (!warmth.IsDragging) warmth.Value = temp;
+            warmth.Text = WarmthName(temp);
+            warmth.SetColours(p, warmTrack, null, Paint.Hex(0x1B1B1B));
+            warmth.IsEnabled = st != null;
+            if (st != null) warmth.Opacity = st.IsColour ? 0.6 : 1;
+            warmth.Visibility = st?.HasTemp == false ? Visibility.Collapsed : Visibility.Visible;
+        });
+
+        var swatches = new List<FrameworkElement>();
+        foreach (var (name, rgb) in Hues)
+        {
+            var (hue, sat) = HueSat(rgb);
+            var tile = new SwatchTile(name, Paint.Hex(rgb));
+            tile.Click += (_, _) => Session.Submit(LightCommand.Colour(hue, sat, Math.Max(1, LightLevel(Session.Shown))));
+            updaters.Add(p =>
+            {
+                var st = Session.Shown;
+                tile.Show(p, st is { On: true, IsColour: true } && NearHue(st.H, hue, 6) && Math.Abs(st.S - sat) <= 8, TraySurface(p));
+                tile.IsEnabled = st != null && st.HasColour;
+            });
+            swatches.Add(tile);
+        }
+        AddGroup("Colour", 8, swatches);
+
+        var scenes = new List<FrameworkElement>();
+        foreach (var scene in LightSession.Scenes)
+        {
+            var tile = new ChipTile(scene.Name, SceneIcons.GetValueOrDefault(scene.Name), default, row: true, height: 40, labelSize: 13);
+            AutomationProperties.SetName(tile, scene.Name + " scene");
+            tile.Click += (_, _) => Session.Submit(scene.Command);
+            updaters.Add(p =>
+            {
+                var st = Session.Shown;
+                var c = scene.Command;
+                bool active = st is { On: true } && (c.Kind == CommandKind.White
+                    ? !st.IsColour && st.Brightness == c.Brightness && st.Temp == c.Temp
+                    : st.IsColour && st.H == c.H && st.S == c.S && st.V == c.V);
+                tile.Colour = p.Accent;
+                tile.Show(p, active, st != null, p.OnAccent);
+            });
+            scenes.Add(tile);
+        }
+        AddGroup("Scene", 3, scenes);
+    }
+
+    void ShowLight(Palette p)
+    {
+        var st = Session.Shown;
+        bool on = st?.On == true;
+        var c = LightColour(st);
+        string name = string.IsNullOrWhiteSpace(Host.Config.Device.Name) ? "Light" : Host.Config.Device.Name;
+        string status = Session.StatusKind != "ok" || st == null ? Session.StatusText
+            : Session.MusicRunning ? "Following the music" : st.Describe();
+        if (on)
+            SetStage(Paint.Hex(0x2A2A2E), Paint.Hex(0x141416),
+                Draw.Radial(new(0.5, 0.4), 0.7, 0.7, (0, Paint.WithAlpha(c, 0.4)), (0.45, Paint.WithAlpha(c, 0.1)), (0.7, Paint.WithAlpha(c, 0))),
+                name, status, true, "Turn the light off", st != null, p);
+        else
+            SetStage(Paint.Hex(0x3A3B3F), Paint.Hex(0x242528), null, name, status, false, "Turn the light on", st != null, p);
+        bulb.Show(on, c, LightLevel(st) / 100.0);
+        AutomationProperties.SetName(ArtHost, on ? $"Light bulb glowing at {LightLevel(st)}%" : "Light bulb, off");
+        SetWash(c, on);
+    }
+
+    // ------------------------------------------------------------ air conditioners
+
+    void BuildAc(AcUnit unit)
+    {
+        ArtHost.Content = acFrame;
+
+        // Fan speed, with Auto beside it. Dragging picks a manual speed and turns Auto off.
+        var fan = new FillSlider("Fan", FanIcon) { Minimum = 1, Maximum = 5, LargeChange = 1 };
+        fan.ValueChanged += v =>
+        {
+            lastFan[unit.Config.Mac] = (int)v;
+            unit.Set(("WdSpd", (int)v));
+        };
+        var auto = new ChipTile("Auto", null, Ice, height: 48, labelSize: 13) { Width = 64 };
+        AutomationProperties.SetName(auto, "Fan auto");
+        auto.Click += (_, _) => ToggleFanAuto(unit);
+        Grid.SetColumn(auto, 1);
+        Controls.Children.Add(new Grid
+        {
+            ColumnSpacing = 8,
+            ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }, new ColumnDefinition { Width = GridLength.Auto } },
+            Children = { fan, auto },
+        });
+        updaters.Add(p =>
+        {
+            var st = unit.Shown;
+            int speed = st?.FanSpeed ?? 3;
+            bool isAuto = speed == 0;
+            if (!isAuto) lastFan[unit.Config.Mac] = speed;
+            int shown = isAuto ? lastFan.GetValueOrDefault(unit.Config.Mac, 3) : speed;
+            if (!fan.IsDragging) fan.Value = shown;
+            fan.Text = st == null ? "" : isAuto ? "Auto" : AcState.FanNames[speed];
+            fan.SetColours(p, null, FillSlider.FillOf(isAuto ? Grey : Ice), p.Text);
+            fan.IsEnabled = st != null;
+            if (st != null) fan.Opacity = isAuto ? 0.75 : 1;
+            auto.Show(p, isAuto && st != null, st != null);
+        });
+
+        var modes = new List<FrameworkElement>();
+        for (int m = 0; m < Modes.Length; m++)
+        {
+            int mode = m;
+            var tile = new ChipTile(AcState.ModeNames[m], Modes[m].Icon, Paint.Hex(Modes[m].Colour));
+            tile.Click += (_, _) => unit.Set(("Mod", mode));
+            updaters.Add(p => tile.Show(p, unit.Shown?.Mode == mode && unit.Shown != null, unit.Shown != null));
+            modes.Add(tile);
+        }
+        AddGroup("Mode", 5, modes);
+
+        var options = new List<FrameworkElement>();
+        foreach (var (name, says, key, icon, colour) in Options)
+        {
+            var tile = new ChipTile(name, icon, Paint.Hex(colour), row: true, height: 44, labelSize: 13);
+            tile.Click += (_, _) => ToggleOption(unit, key);
+            updaters.Add(p =>
+            {
+                var st = unit.Shown;
+                bool on = st != null && IsOptionOn(st, key);
+                // Turbo only works in Cool and Heat, as on the Climate page.
+                bool usable = st != null && (key != "Tur" || st.Mode is AcState.Cool or AcState.Heat);
+                tile.Show(p, on && usable, usable);
+                AutomationProperties.SetName(tile, $"{says} ({(on ? "on" : "off")})");
+                ToolTipService.SetToolTip(tile, key == "Tur" && st != null && !usable ? "Turbo: only in Cool and Heat" : says);
+            });
+            options.Add(tile);
+        }
+        AddGroup("Options", 3, options);
+    }
+
+    static bool IsOptionOn(AcState st, string key) => key switch
+    {
+        "SwUpDn" => st.Get(key) == 1 || st.Get(key) is >= 7 and <= 11,
+        "SwingLfRig" => st.Get(key) == 1,
+        _ => st.Is(key),
+    };
+
+    static void ToggleOption(AcUnit unit, string key)
+    {
+        if (unit.Shown is not { } st) return;
+        bool turnOn = !IsOptionOn(st, key);
+        // Quiet uses 2 for "on" (1 is an automatic mode on some units). Turbo and Quiet switch each other off, as on the unit.
+        if (key == "Tur" && turnOn) unit.Set(("Tur", 1), ("Quiet", 0));
+        else if (key == "Quiet" && turnOn) unit.Set(("Quiet", 2), ("Tur", 0));
+        // Swing: 1 swings; turning it off lets the unit choose the direction.
+        else unit.Set((key, turnOn ? 1 : 0));
+    }
+
+    void ShowAc(AcUnit unit, Palette p)
+    {
+        var st = unit.Shown;
+        bool on = st?.On == true, heat = st?.Mode == AcState.Heat, usesTemp = st?.UsesSetTemp ?? false;
+        var modeCol = Paint.Hex(Modes[st?.Mode ?? AcState.Cool].Colour);
+        string doing = st == null ? "" : !on ? "off" : st.Mode switch
+        {
+            AcState.Cool => "cooling", AcState.Heat => "heating", AcState.Dry => "drying", AcState.Fan => "fan only", _ => "auto",
+        };
+        string status = unit.StatusKind != "ok" || st == null ? unit.StatusText
+            : st.RoomTemp is { } room ? $"Room {room} °C · {doing}" : char.ToUpper(doing[0]) + doing[1..];
+        string label = $"Turn {unit.Config.DisplayName} {(on ? "off" : "on")}";
+        if (on && heat) SetStage(Paint.Hex(0xC4702E), Paint.Hex(0xF5A35B), null, unit.Config.DisplayName, status, true, label, true, p);
+        else if (on) SetStage(Paint.Hex(0x2C6CB8), Paint.Hex(0x5BB4F5), null, unit.Config.DisplayName, status, true, label, true, p);
+        else SetStage(Paint.Hex(0x4A4F57), Paint.Hex(0x2B2E33), null, unit.Config.DisplayName, status, false, label, st != null, p);
+        acArt.Show(on, st?.SetTemp, heat);
+        AutomationProperties.SetName(ArtHost, $"{unit.Config.DisplayName}{(on ? ", running" : ", off")}");
+        SetWash(modeCol, on);
+
+        TempRow.Background = Palette.B(p.Tile);
+        TempRow.BorderBrush = Palette.B(p.TileStroke);
+        TempDown.Background = TempUp.Background = Palette.B(p.TileButton);
+        TempValue.Text = st != null ? $"{st.SetTemp}°" : "--";
+        TempValue.Foreground = Palette.B(on && usesTemp ? modeCol : p.Text);
+        TempCaption.Foreground = Palette.B(p.Text3);
+        TempCaption.Text = st == null ? "Connecting" : !usesTemp ? $"Not used in {AcState.ModeNames[st.Mode]}"
+            : on ? $"Target · {AcState.ModeNames[st.Mode]}" : "Off · target";
+        TempDown.IsEnabled = usesTemp && st!.SetTemp > AcState.MinTemp;
+        TempUp.IsEnabled = usesTemp && st!.SetTemp < AcState.MaxTemp;
+    }
+
+    void ToggleFanAuto(AcUnit unit)
+    {
+        if (unit.Shown is not { } st) return;
+        if (st.FanSpeed == 0) unit.Set(("WdSpd", lastFan.GetValueOrDefault(unit.Config.Mac, 3)));
+        else
+        {
+            lastFan[unit.Config.Mac] = st.FanSpeed;
+            unit.Set(("WdSpd", 0));
+        }
+    }
+
+    // ------------------------------------------------------------ music sync
+
+    void BuildMusic()
+    {
+        ArtHost.Content = speakerFrame;
+
+        var sens = new FillSlider("Sensitivity", MicIcon) { Minimum = 0, Maximum = 100, LargeChange = 10 };
+        sens.ValueChanged += v =>
+        {
+            Prefs.Sensitivity = (int)v;
+            sens.Text = Prefs.Sensitivity.ToString();
+            Host.ApplyMusicPrefs();
+            saveTimer.Stop();
+            saveTimer.Start(); // save once the slider settles
+        };
+        Controls.Children.Add(sens);
+        updaters.Add(p =>
+        {
+            if (!sens.IsDragging) sens.Value = Prefs.Sensitivity;
+            sens.Text = Prefs.Sensitivity.ToString();
+            sens.SetColours(p, null, FillSlider.FillOf(Violet), p.Text);
+        });
+
+        var styles = new List<FrameworkElement>();
+        foreach (var (key, name, icon) in Styles)
+        {
+            var tile = new ChipTile(name, icon, Violet);
+            tile.Click += (_, _) => SetPrefs(() => Prefs.Style = key);
+            updaters.Add(p => tile.Show(p, Prefs.Style == key));
+            styles.Add(tile);
+        }
+        AddGroup("Style", 4, styles);
+
+        var speeds = new List<FrameworkElement>();
+        foreach (int fps in MusicPrefs.Speeds)
+        {
+            var tile = new ChipTile("/ s", null, Violet, row: true, height: 40, labelSize: 12, num: fps.ToString());
+            AutomationProperties.SetName(tile, $"{fps} updates a second");
+            ToolTipService.SetToolTip(tile, $"{fps} updates a second");
+            tile.Click += (_, _) => SetPrefs(() => Prefs.Fps = fps);
+            updaters.Add(p => tile.Show(p, Prefs.Fps == fps));
+            speeds.Add(tile);
+        }
+        AddGroup("Update speed · lower is gentler on the light", 4, speeds);
+
+        var pulses = new List<FrameworkElement>();
+        for (int i = 0; i < Hues.Length; i++)
+        {
+            int hue = PulseHues[i];
+            var tile = new SwatchTile("Pulse in " + Hues[i].Name.ToLowerInvariant(), Paint.Hex(Hues[i].Rgb));
+            // Picking a pulse colour switches to the Pulse style.
+            tile.Click += (_, _) => SetPrefs(() =>
+            {
+                Prefs.Hue = hue;
+                Prefs.Style = "pulse";
+            });
+            updaters.Add(p =>
+            {
+                tile.Show(p, Prefs.Hue == hue, TraySurface(p));
+                tile.Opacity = Prefs.Style == "pulse" ? 1 : 0.6;
+            });
+            pulses.Add(tile);
+        }
+        AddGroup("Pulse colour", 8, pulses, () => Prefs.Style == "pulse" ? "Pulse colour" : "Pulse colour · for the Pulse style");
+
+        // What to listen to
+        var heading = new TextBlock { Text = "Listen to", FontSize = 12, LineHeight = 16 };
+        titles.Add(heading);
+        var box = new ComboBox { Height = 40, CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Stretch, FontSize = 13 };
+        AutomationProperties.SetName(box, "Listen to");
+        syncing = true;
+        var sources = AudioCapture.ListSources();
+        foreach (var s in sources) box.Items.Add(new ComboBoxItem { Content = s.Label, Tag = s.Id });
+        box.SelectedIndex = Math.Max(0, sources.FindIndex(s => s.Id == Prefs.Source || s.Name == Prefs.Source));
+        syncing = false;
+        box.SelectionChanged += (_, _) =>
+        {
+            if (syncing || box.SelectedItem is not ComboBoxItem item) return;
+            SetPrefs(() => Prefs.Source = (string)item.Tag);
+        };
+        updaters.Add(p =>
+        {
+            box.Background = Palette.B(p.Tile);
+            box.BorderBrush = Palette.B(p.TileStroke);
+        });
+        Controls.Children.Add(new StackPanel { Spacing = 6, Children = { heading, box } });
+    }
+
+    void SetPrefs(Action change)
+    {
+        change();
+        SaveMusicPrefs();
+        Refresh();
+    }
+
+    void ShowMusic(Palette p)
+    {
+        bool running = Session.MusicRunning || Session.MusicKind == "busy";
+        string status = Session.MusicKind == "error" ? Session.MusicText
+            : running ? $"Listening · {Prefs.Fps} updates a second" : "Stopped";
+        if (running)
+            SetStage(Paint.Hex(0x24202E), Paint.Hex(0x121116),
+                Draw.Radial((0, Paint.Hex(0x8A5BE0, 0x66)), (0.5, Paint.Hex(0x3E6FE0, 0x26)), (0.75, Paint.Hex(0x3E6FE0, 0))),
+                "Music sync", status, true, "Stop music sync", true, p);
+        else
+            SetStage(Paint.Hex(0x2E2F33), Paint.Hex(0x1A1B1E), null, "Music sync", status, false, "Start music sync", true, p);
+        speaker.Show(running && AppWindow.IsVisible);
+        AutomationProperties.SetName(ArtHost, running ? "Speaker, glowing while music sync runs" : "Speaker, stopped");
+        SetWash(Violet, running);
     }
 
     // ------------------------------------------------------------ showing the state
@@ -359,15 +679,8 @@ public sealed partial class QuickPanel : Window
             if (current.Unit is { } unit) ShowAc(unit, p);
             else if (current.IsMusic) ShowMusic(p);
             else ShowLight(p);
-
-            foreach (var (button, icon, selected, swatch) in chips)
-            {
-                bool sel = selected();
-                if (button is ToggleButton tb) tb.IsChecked = sel;
-                if (icon != null) Draw.Tint(icon, sel ? p.OnAccent : p.Text);
-                if (button is SwatchTile tile) tile.Show(p, sel, p.Dark ? Paint.Hex(0x323232) : Paint.Hex(0xFFFFFF));
-                else AutomationProperties.SetItemStatus(button, sel ? "Selected" : "");
-            }
+            foreach (var t in titles) t.Foreground = Palette.B(p.Text3);
+            foreach (var update in updaters) update(p);
 
             // Footer
             int total = 1 + Host.Acs.Units.Count;
@@ -382,114 +695,26 @@ public sealed partial class QuickPanel : Window
         }
     }
 
-    void SetStage(Color top, Color bottom, Brush? glow, string name, string status, bool on, string powerLabel, bool canPower)
+    /// <summary>A soft wash of the device's colour from the top of the control area; none when it's off.</summary>
+    void SetWash(Color c, bool on) => Wash.Background = on
+        ? Draw.Radial(new(0.5, 0), 1.4, 0.7, (0, Paint.WithAlpha(c, 0.2)), (0.55, Paint.WithAlpha(c, 0.063)), (1, Paint.WithAlpha(c, 0)))
+        : null;
+
+    void SetStage(Color top, Color bottom, Brush? glow, string name, string status, bool on, string powerLabel, bool canPower, Palette p)
     {
         StageBase.Background = Draw.Vertical((0, top), (1, bottom));
         StageGlow.Background = glow;
         StageName.Text = name;
         StageStatus.Text = status;
-        PowerButton.IsChecked = on;
+        // The big power button: the accent when on, a white disc when off.
+        PowerFace.Background = Palette.B(on ? p.Accent : Paint.Hex(0xFFFFFF, 0xEB));
+        PowerFace.BorderBrush = Palette.B(on ? p.Accent : Paint.Hex(0, 0x14));
+        PowerIcon.Foreground = Palette.B(on ? p.OnAccent : Paint.Hex(0x1B1B1B));
         PowerButton.IsEnabled = canPower;
+        PowerButton.Opacity = canPower ? 1 : 0.6;
         AutomationProperties.SetName(PowerButton, powerLabel);
+        AutomationProperties.SetItemStatus(PowerButton, on ? "On" : "Off");
         ToolTipService.SetToolTip(PowerButton, powerLabel);
-    }
-
-    void SetSlider(double value, string text, Color fill, bool enabled)
-    {
-        MainSlider.Value = value;
-        SliderValue.Text = text;
-        MainSlider.IsEnabled = enabled;
-        SliderBox.Opacity = enabled ? 1 : 0.45;
-        var brush = new SolidColorBrush(fill);
-        // The filled part takes the device's colour. (The thumb keeps the accent: its colour can't be changed
-        // once it's drawn, so a per-tab colour would stick from the previous tab.)
-        foreach (var state in new[] { "", "PointerOver", "Pressed" }) MainSlider.Resources["SliderTrackValueFill" + state] = brush;
-        MainSlider.Foreground = brush;
-    }
-
-    void ShowLight(Palette p)
-    {
-        var st = Session.Shown;
-        bool on = st?.On == true, colour = st?.IsColour == true;
-        int level = st == null ? 50 : colour ? st.V : st.Brightness;
-        var c = st != null ? Color.FromArgb(255, st.Rgb.R, st.Rgb.G, st.Rgb.B) : Paint.Hex(0xFFC47E);
-        string name = string.IsNullOrWhiteSpace(Host.Config.Device.Name) ? "Light" : Host.Config.Device.Name;
-        string status = Session.StatusKind != "ok" || st == null ? Session.StatusText
-            : Session.MusicRunning ? "Following the music" : st.Describe();
-        if (on)
-            SetStage(Paint.Hex(0x2A2A2E), Paint.Hex(0x141416),
-                Draw.Radial(new(0.5, 0.4), 0.7, 0.7, (0, Paint.WithAlpha(c, 0.4)), (0.45, Paint.WithAlpha(c, 0.1)), (0.7, Paint.WithAlpha(c, 0))),
-                name, status, true, "Turn the light off", st != null);
-        else
-            SetStage(Paint.Hex(0x3A3B3F), Paint.Hex(0x242528), null, name, status, false, "Turn the light on", st != null);
-        bulb.Show(on, c, level / 100.0);
-        AutomationProperties.SetName(ArtHost, on ? $"Light bulb glowing at {level}%" : "Light bulb, off");
-        SetSlider(Math.Max(1, level), st != null ? $"{Math.Max(1, level)}%" : "", Paint.Hex(0xE8A33C), st != null);
-    }
-
-    void ShowAc(AcUnit unit, Palette p)
-    {
-        var st = unit.Shown;
-        bool on = st?.On == true, heat = st?.Mode == AcState.Heat, usesTemp = st?.UsesSetTemp ?? false;
-        string doing = st == null ? "" : !on ? "off" : st.Mode switch
-        {
-            AcState.Cool => "cooling", AcState.Heat => "heating", AcState.Dry => "drying", AcState.Fan => "fan only", _ => "auto",
-        };
-        string status = unit.StatusKind != "ok" || st == null ? unit.StatusText
-            : st.RoomTemp is { } room ? $"Room {room} °C · {doing}" : char.ToUpper(doing[0]) + doing[1..];
-        string label = $"Turn {unit.Config.DisplayName} {(on ? "off" : "on")}";
-        if (on && heat) SetStage(Paint.Hex(0xC4702E), Paint.Hex(0xF5A35B), null, unit.Config.DisplayName, status, true, label, true);
-        else if (on) SetStage(Paint.Hex(0x2C6CB8), Paint.Hex(0x5BB4F5), null, unit.Config.DisplayName, status, true, label, true);
-        else SetStage(Paint.Hex(0x4A4F57), Paint.Hex(0x2B2E33), null, unit.Config.DisplayName, status, false, label, st != null);
-        acArt.Show(on, st?.SetTemp, heat);
-        AutomationProperties.SetName(ArtHost, $"{unit.Config.DisplayName}{(on ? ", running" : ", off")}");
-
-        TempValue.Text = st != null ? $"{st.SetTemp}°" : "--";
-        TempValue.Foreground = Palette.B(on && usesTemp ? p.Accent : p.Text);
-        TempCaption.Text = st == null ? "Connecting" : !usesTemp ? $"Not used in {AcState.ModeNames[st.Mode]}"
-            : on ? $"Target · {AcState.ModeNames[st.Mode]}" : "Off · target";
-        TempDown.IsEnabled = usesTemp && st!.SetTemp > AcState.MinTemp;
-        TempUp.IsEnabled = usesTemp && st!.SetTemp < AcState.MaxTemp;
-
-        int speed = st?.FanSpeed ?? 3;
-        bool auto = speed == 0;
-        int shown = auto ? lastFan.GetValueOrDefault(unit.Config.Mac, 3) : speed;
-        if (!auto) lastFan[unit.Config.Mac] = speed;
-        SetSlider(shown, st == null ? "" : auto ? "Auto" : AcState.FanNames[speed], p.Accent, st != null && !auto);
-    }
-
-    readonly Dictionary<string, int> lastFan = [];
-
-    void ToggleFanAuto(AcUnit unit)
-    {
-        if (unit.Shown is not { } st) return;
-        if (st.FanSpeed == 0) unit.Set(("WdSpd", lastFan.GetValueOrDefault(unit.Config.Mac, 3)));
-        else
-        {
-            lastFan[unit.Config.Mac] = st.FanSpeed;
-            unit.Set(("WdSpd", 0));
-        }
-    }
-
-    void ShowMusic(Palette p)
-    {
-        bool running = Session.MusicRunning || Session.MusicKind == "busy";
-        string status = running ? Session.MusicText : "Stopped";
-        if (running)
-            SetStage(Paint.Hex(0x24202E), Paint.Hex(0x121116),
-                Draw.Radial((0, Paint.Hex(0x8A5BE0, 0x66)), (0.5, Paint.Hex(0x3E6FE0, 0x26)), (0.75, Paint.Hex(0x3E6FE0, 0))),
-                "Music sync", status, true, "Stop music sync", true);
-        else
-            SetStage(Paint.Hex(0x2E2F33), Paint.Hex(0x1A1B1E), null, "Music sync", status, false, "Start music sync", true);
-        speaker.Show(running);
-        AutomationProperties.SetName(ArtHost, running ? "Speaker, with the music visualiser running" : "Speaker, stopped");
-        int sens = Host.Config.Music.Sensitivity;
-        SetSlider(sens, sens.ToString(), Paint.Hex(0x8A5BE0), true);
-    }
-
-    void OnMusicFrame(MusicFrame f)
-    {
-        if (AppWindow.IsVisible && current?.IsMusic == true && Session.MusicRunning) speaker.Pulse(f.Bars, f.Bass);
     }
 
     // ------------------------------------------------------------ changes
@@ -509,30 +734,6 @@ public sealed partial class QuickPanel : Window
     {
         if (current?.Unit is not { Shown: { } st } unit) return;
         unit.Set(("SetTem", Math.Clamp(st.SetTemp + delta, AcState.MinTemp, AcState.MaxTemp)), ("TemUn", 0));
-    }
-
-    void MainSlider_Changed(object sender, RangeBaseValueChangedEventArgs e)
-    {
-        if (syncing || current == null) return;
-        int v = (int)e.NewValue;
-        if (current.Unit is { } unit)
-        {
-            lastFan[unit.Config.Mac] = v;
-            unit.Set(("WdSpd", v));
-        }
-        else if (current.IsMusic)
-        {
-            Host.Config.Music.Sensitivity = v;
-            SliderValue.Text = v.ToString();
-            Host.ApplyMusicPrefs();
-            saveTimer.Stop();
-            saveTimer.Start(); // save once the slider settles
-        }
-        else
-        {
-            var st = Session.Shown ?? new LightState();
-            Session.Submit(st.IsColour ? LightCommand.Colour(st.H, st.S, v) : LightCommand.White(v, st.Temp));
-        }
     }
 
     static void SaveMusicPrefs()
