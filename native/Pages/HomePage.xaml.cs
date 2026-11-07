@@ -37,8 +37,10 @@ public sealed partial class HomePage : Page
 
     readonly DeviceCard lightCard = new();
     readonly BulbArt bulb = new();
-    readonly RadialDial lightDial = new() { Minimum = 1, Maximum = 100, Step = 1, LargeStep = 10 };
-    readonly TextBlock lightValue = ValueText(), lightCaption = CaptionText();
+    // The light: two straight fill sliders, brightness in amber and warmth on a warm-to-cool track.
+    readonly FillSlider brightSlider = new("Brightness", showText: false, height: 44) { Minimum = 1, Maximum = 100, LargeChange = 10 };
+    readonly FillSlider warmSlider = new("Warmth", showText: false, height: 44) { Minimum = 0, Maximum = 100, LargeChange = 10 };
+    readonly TextBlock brightValue = PillText(), warmValue = PillText();
 
     sealed class AcCardParts
     {
@@ -54,7 +56,7 @@ public sealed partial class HomePage : Page
 
     readonly DeviceCard musicCard = new();
     readonly SpeakerArt speaker = new();
-    readonly MusicRing ring = new();
+    readonly MusicGlow musicGlow = new() { HorizontalAlignment = HorizontalAlignment.Center };
 
     public HomePage()
     {
@@ -115,7 +117,6 @@ public sealed partial class HomePage : Page
     void OnMusicFrame(MusicFrame f)
     {
         if (!Session.MusicRunning) return;
-        ring.Draw(f.Bars);
         speaker.Pulse(f.Level, f.Bass);
     }
 
@@ -359,16 +360,69 @@ public sealed partial class HomePage : Page
         return Color.FromArgb(255, r, g, b);
     }
 
+    const string SunIcon = "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4";
+    const string WarmthIcon = "M12 3a2 2 0 0 0-2 2v9.3a4 4 0 1 0 4 0V5a2 2 0 0 0-2-2zM12 17.5v-6";
+
+    static TextBlock PillText() => new() { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Paint.Brush(0xFFFFFF) };
+
+    /// <summary>A labelled fill slider: icon, name and the value in a pill above it, the two ends named below.</summary>
+    static StackPanel SliderBlock(FillSlider slider, TextBlock value, string label, string icon, string low, string high)
+    {
+        var (box, strokes) = Draw.LineIcon(icon, 16, 1.8);
+        Draw.Tint(strokes, Paint.Hex(0xFFFFFF));
+        var pill = new Border
+        {
+            Padding = new Thickness(10, 2, 10, 2), CornerRadius = new CornerRadius(10), Background = Paint.Brush(0xFFFFFF, 0x24),
+            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center, Child = value,
+        };
+        var ends = new Grid { IsHitTestVisible = false };
+        ends.Children.Add(new TextBlock { Text = low, FontSize = 11, Foreground = Paint.Brush(0xFFFFFF, 0xB8) });
+        ends.Children.Add(new TextBlock { Text = high, FontSize = 11, Foreground = Paint.Brush(0xFFFFFF, 0xB8), HorizontalAlignment = HorizontalAlignment.Right });
+        AutomationProperties.SetAccessibilityView(ends, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
+        return new StackPanel
+        {
+            Spacing = 6,
+            Children =
+            {
+                new Grid
+                {
+                    Children =
+                    {
+                        new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center,
+                            Children = { box, new TextBlock { Text = label, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Paint.Brush(0xFFFFFF) } },
+                        },
+                        pill,
+                    },
+                },
+                slider, ends,
+            },
+        };
+    }
+
     void BuildLightCard()
     {
-        lightCard.Icon = Glyph("");
+        lightCard.Icon = Glyph("\uEA80");
         lightCard.Art = bulb;
-        var down = RoundButton("", "Dim the light", () => NudgeLight(-5));
-        var up = RoundButton("", "Brighten the light", () => NudgeLight(5));
-        lightDial.Center = DialCentre(lightValue, lightCaption, down, up);
-        AutomationProperties.SetName(lightDial, "Brightness");
-        lightDial.ValueChanged += v => SetBrightness((int)v);
-        lightCard.Body = lightDial;
+        brightSlider.ValueChanged += v => SetBrightness((int)v);
+        // Warmth drives the bulb's colour, the card's light, the status, the chip and the house window.
+        warmSlider.ValueChanged += v =>
+        {
+            ClearScene();
+            var st = Session.Shown;
+            int level = st == null ? 50 : Math.Max(1, st.IsColour ? st.V : st.Brightness);
+            Session.Submit(LightCommand.White(level, (int)v));
+        };
+        lightCard.Body = new StackPanel
+        {
+            MinHeight = 196, Spacing = 12, VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                SliderBlock(brightSlider, brightValue, "Brightness", SunIcon, "Dim", "Bright"),
+                SliderBlock(warmSlider, warmValue, "Warmth", WarmthIcon, "Warm", "Cool"),
+            },
+        };
         lightCard.PowerToggled += on =>
         {
             if (on == (Session.Shown?.On == true)) return; // already so
@@ -376,13 +430,6 @@ public sealed partial class HomePage : Page
             Session.Submit(LightCommand.Power(on));
         };
         lightCard.OpenClicked += () => Host.Window.ShowPage("light");
-    }
-
-    void NudgeLight(int delta)
-    {
-        var st = Session.Shown;
-        int now = st == null ? 50 : st.IsColour ? st.V : st.Brightness;
-        SetBrightness(Math.Clamp((st?.On == true ? now : 0) + delta, 1, 100));
     }
 
     void SetBrightness(int v)
@@ -410,16 +457,26 @@ public sealed partial class HomePage : Page
         lightCard.PowerEnabled = known;
         bulb.Show(on, colour, level / 100.0);
 
-        if (!lightDial.IsDragging) lightDial.Value = Math.Max(1, level);
-        lightDial.IsEnabled = known && !music;
-        lightDial.ArcBrush = new SolidColorBrush(!on ? Paint.Hex(0xFFFFFF, 0x73) : st!.IsColour ? Paint.Mix(colour, Paint.Hex(0xFFFFFF), 0.15) : Paint.Hex(0xF2B45A));
-        lightValue.Text = known ? $"{Math.Max(1, level)}%" : "--";
-        lightCaption.Text = music ? "Music sync" : on ? "Brightness" : "Off · brightness";
+        var p = Palette.For(true);
+        var amber = Paint.Hex(0xF2B45A);
+        if (!brightSlider.IsDragging) brightSlider.Value = Math.Max(1, level);
+        brightSlider.Text = brightValue.Text = known ? $"{Math.Max(1, level)}%" : "--";
+        brightSlider.SetColours(p, Paint.Brush(0xFFFFFF, 0x1A),
+            on ? FillSlider.FillOf(amber, 0x55 / 255.0, 0xCC / 255.0) : Paint.Brush(0xFFFFFF, 0x38), Paint.Hex(0xFFFFFF), on ? amber : null);
+        int temp = st?.Temp ?? 0;
+        if (!warmSlider.IsDragging) warmSlider.Value = temp;
+        warmSlider.Text = warmValue.Text = temp < 35 ? "Warm" : temp < 70 ? "Neutral" : "Cool";
+        warmSlider.SetColours(p, Draw.Gradient(new(0, 0), new(1, 0), (0, Paint.Hex(0xE8892A)), (0.4, Paint.Hex(0xFFD9A3)), (0.62, Paint.Hex(0xFFF3E2)), (1, Paint.Hex(0xBBD3FA))),
+            null, Paint.Hex(0x1B1B1B));
+        brightSlider.IsEnabled = warmSlider.IsEnabled = known && !music;
+        // In colour mode warmth isn't in use: it fades back until it's moved (which switches to white).
+        if (known && !music) warmSlider.Opacity = st!.IsColour ? 0.6 : 1;
+        warmSlider.Visibility = st?.HasTemp == false ? Visibility.Collapsed : Visibility.Visible;
 
         var chips = new List<string>();
         if (st != null)
         {
-            chips.Add(st.IsColour ? ColorMath.HueName(st.H, st.S) : st.Temp < 25 ? "Warm white" : st.Temp > 75 ? "Cool white" : "White");
+            chips.Add(st.IsColour ? ColorMath.HueName(st.H, st.S) : st.Temp < 35 ? "Warm white" : st.Temp < 70 ? "Neutral white" : "Cool white");
             if (!string.IsNullOrEmpty(st.Via)) chips.Add(st.Via == "cloud" ? "Tuya Cloud" : "Home network");
         }
         lightCard.SetChips([.. chips]);
@@ -454,6 +511,7 @@ public sealed partial class HomePage : Page
             ClearScene();
             unit.Set(("SetTem", (int)v), ("TemUn", 0));
         };
+        parts.Dial.HorizontalAlignment = HorizontalAlignment.Center;
         parts.Card.Body = parts.Dial;
         parts.Card.PowerToggled += on =>
         {
@@ -528,8 +586,8 @@ public sealed partial class HomePage : Page
         musicCard.Icon = Glyph("");
         musicCard.HasPower = false;
         musicCard.Art = speaker;
-        musicCard.Body = ring;
-        ring.PlayButton.Click += (_, _) =>
+        musicCard.Body = musicGlow;
+        musicGlow.PlayButton.Click += (_, _) =>
         {
             ClearScene();
             Session.ToggleMusic();
@@ -542,7 +600,7 @@ public sealed partial class HomePage : Page
         bool running = Session.MusicRunning || Session.MusicKind == "busy";
         musicCard.Status = running ? Session.MusicText : "Stopped";
         speaker.Show(running);
-        ring.Show(running);
+        musicGlow.Show(running);
         AutomationProperties.SetName(speaker, running ? "Speaker playing, with sound waves" : "Speaker, quiet");
         var prefs = Host.Config.Music;
         string style = prefs.Style.Length > 0 ? Cap(prefs.Style) : "Spectrum";
