@@ -1,5 +1,6 @@
 using LedControl.Art;
 using LedControl.Controls;
+using CommunityToolkit.WinUI.Controls;
 using LedControl.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -16,7 +17,7 @@ namespace LedControl.Pages;
 /// <summary>
 /// Climate: one tab per air conditioner. A big temperature dial with the room temperature and power,
 /// mode cards beside it, three fan and airflow panels (each a picture with its own arc slider),
-/// and option tiles with tooltips.
+/// and the other options as Windows Settings cards with tooltips.
 /// </summary>
 public sealed partial class AcPage : Page
 {
@@ -32,21 +33,21 @@ public sealed partial class AcPage : Page
         ("M12 3c.8 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.4 1.3-3.9 2.4-4.9.4 1.9 1.4 2.9 2.4 2.9-.2-3 .2-5.4.2-8z", "Warms to the target", 0xC94A0C, 0xFFA35C),
     ];
 
-    // Options: Gree key, name, what the tile says when off, icon, tooltip, colour.
-    static readonly (string Key, string Name, string Idle, string Icon, string Info, uint Colour)[] Extras =
+    // Options: Gree key, name, description, Fluent icon glyph, tooltip.
+    static readonly (string Key, string Name, string Desc, string Glyph, string Info)[] Extras =
     [
-        ("Tur", "Turbo", "Full power for a while", "M13 2 4 14h7l-1 8 9-12h-7z",
-         "Runs the fan and compressor at full power for a while, so the room reaches your temperature faster. Works in Cool and Heat only. Turning it on switches Quiet off.", 0xD9480F),
-        ("Quiet", "Quiet", "Lower fan noise", "M4 9h4l5-4v14l-5-4H4zM17 9.5l4 5M21 9.5l-4 5",
-         "Slows the fan to make the unit quieter, for bedrooms or calls. The room cools or heats more slowly. Turning it on switches Turbo off.", 0x4C5BD4),
-        ("SwhSlp", "Sleep", "Gentler overnight", "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
-         "For the night. In Cool it lets the temperature rise a little over the first hours, and in Heat it lets it drop a little, so you stay comfortable and use less power.", 0x7048C2),
-        ("Lig", "Display light", "Unit display", "M3 5h18v11H3zM9 20h6M12 16v4",
-         "Turns the temperature display on the indoor unit on or off, for example in a dark bedroom. The air conditioner keeps working either way.", 0x0B8578),
-        ("Health", "Health", "Ionizer", "M5 19c0-8.5 6-14 15-14 0 9-5.5 15-14 15M5 19l7-7",
-         "Turns on the built-in ionizer to help freshen the air. Only some units have one; on others this does nothing.", 0x2F8A45),
-        ("Blo", "X-Fan", "Dries the coil", "M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h8",
-         "After you turn the unit off in Cool or Dry, the fan keeps running briefly to dry the inside, which helps prevent mould and musty smells.", 0x1569C7),
+        ("Tur", "Turbo", "Full power for a while. Cool and Heat only", "\uE945",
+         "Runs the fan and compressor at full power for a while, so the room reaches your temperature faster. Works in Cool and Heat only. Turning it on switches Quiet off."),
+        ("Quiet", "Quiet", "Lower fan noise", "\uE74F",
+         "Slows the fan to make the unit quieter, for bedrooms or calls. The room cools or heats more slowly. Turning it on switches Turbo off."),
+        ("SwhSlp", "Sleep", "Eases the temperature overnight", "\uE708",
+         "For the night. In Cool it lets the temperature rise a little over the first hours, and in Heat it lets it drop a little, so you stay comfortable and use less power."),
+        ("Lig", "Display light", "The numbers on the indoor unit", "\uE7F4",
+         "Turns the temperature display on the indoor unit on or off, for example in a dark bedroom. The air conditioner keeps working either way."),
+        ("Health", "Health", "Ionizer, on units that have one", "\uE8BE",
+         "Turns on the built-in ionizer to help freshen the air. Only some units have one; on others this does nothing."),
+        ("Blo", "X-Fan", "Dries the coil after turning off", "\uEDA8",
+         "After you turn the unit off in Cool or Dry, the fan keeps running briefly to dry the inside, which helps prevent mould and musty smells."),
     ];
 
     const string AutoIcon = "M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9M18.5 3.5v3.6h-3.6M5.5 20.5v-3.6h3.6";
@@ -93,15 +94,13 @@ public sealed partial class AcPage : Page
         public IconParts? SwingIcon;
     }
 
-    sealed class ExtraTile
+    sealed class OptionCard
     {
         public required int Index;
-        public required Button Button;
-        public required Grid Face;
-        public required Border Wash, Badge, SwitchTrack;
-        public required Microsoft.UI.Xaml.Shapes.Ellipse SwitchKnob;
-        public required IconParts Icon;
-        public required TextBlock State;
+        public required SettingsCard Card;
+        public required FontIcon Icon;
+        public required TextBlock Name, Desc;
+        public required ToggleSwitch Toggle;
         public required Button Info;
     }
 
@@ -122,7 +121,7 @@ public sealed partial class AcPage : Page
     readonly FanScene fanScene = new();
     readonly SideUnitScene sideScene = new();
     readonly FrontUnitScene frontScene = new();
-    readonly List<ExtraTile> tiles = [];
+    readonly List<OptionCard> tiles = [];
 
     readonly Dictionary<string, int> lastPosition = []; // per unit and louvre, for turning swing off
     readonly Dictionary<string, int> lastFan = [];       // per unit, the speed to go back to when Auto is turned off
@@ -153,10 +152,10 @@ public sealed partial class AcPage : Page
 
         for (int m = 0; m < Modes.Length; m++) ModeGrid.Children.Add(BuildModeCard(m).Button);
 
-        fanPanel = BuildFlowPanel("Fan speed", FanIcon, new ArcSelector(fanScene, 140, 150, 100, [195, 232.5, 270, 307.5, 345], FanLevelNames,
-            ("Low", 34, 150), ("High", 246, 150), ArcSelector.Look.Amount, "Fan speed"), swing: null);
-        vPanel = BuildFlowPanel("Up and down", UpDownIcon, new ArcSelector(sideScene, 103, 88, 100, [0, 22.5, 45, 67.5, 90], VerticalNames,
-            ("Ahead", 236, 92), ("Down", 103, 210), ArcSelector.Look.Direction, "Up and down"),
+        fanPanel = BuildFlowPanel("Fan speed", FanIcon, new ArcSelector(fanScene, 140, 104, 82, [135, 202.5, 270, 337.5, 405], FanLevelNames,
+            ("Low", 78, 196), ("High", 202, 196), ArcSelector.Look.Amount, "Fan speed"), swing: null);
+        vPanel = BuildFlowPanel("Up and down", UpDownIcon, new ArcSelector(sideScene, 103, 74, 100, [0, 22.5, 45, 67.5, 90], VerticalNames,
+            ("Ahead", 236, 78), ("Down", 103, 196), ArcSelector.Look.Direction, "Up and down"),
             swing: ("M3 3.5h8.5A2.5 2.5 0 0 1 14 6v1.2L12.6 9H3z", "M19.6 10.6A10 10 0 0 1 11 20.4", "M17.2 9.9 19.6 10.6l.9-2.3M13.3 21.6 11 20.4l1.5-2.1"));
         hPanel = BuildFlowPanel("Left and right", LeftRightIcon, new ArcSelector(frontScene, 140, 72, 100, [160, 125, 90, 55, 20], HorizontalNames,
             ("Left", 30, 132), ("Right", 250, 132), ArcSelector.Look.Direction, "Left and right"),
@@ -346,84 +345,52 @@ public sealed partial class AcPage : Page
         },
     };
 
+    /// <summary>
+    /// An option as a Windows Settings card: a monochrome Fluent icon, the name with a grey description,
+    /// and an ⓘ, an On / Off label and a standard toggle switch on the right.
+    /// </summary>
     UIElement BuildTile(int i)
     {
-        var (key, name, _, icon, info, _) = Extras[i];
-        var wash = new Border { CornerRadius = new CornerRadius(14) };
-        var hover = new Border { CornerRadius = new CornerRadius(14), Opacity = 0, Background = Palette.B(Paint.Hex(0x808080, 0x12)) };
-        var glyph = Icon(icon, 22, 1.8);
-        var badge = new Border { Width = 44, Height = 44, CornerRadius = new CornerRadius(14), Child = glyph.Box };
-        var state = new TextBlock { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
-        var knob = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 16, Height = 16, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(3, 0, 0, 0) };
-        var track = new Border { Width = 44, Height = 24, CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1), Child = knob };
-        track.HorizontalAlignment = HorizontalAlignment.Right;
-        track.VerticalAlignment = VerticalAlignment.Center;
-        track.Margin = new Thickness(0, 0, 16, 0);
-        var face = new Grid
+        var (key, name, desc, glyph, info) = Extras[i];
+        var icon = new FontIcon { Glyph = glyph, FontSize = 20 };
+        var title = new TextBlock { Text = name, FontSize = 14 };
+        var sub = new TextBlock { Text = desc, FontSize = 12, LineHeight = 16, TextWrapping = TextWrapping.Wrap };
+        var toggle = new ToggleSwitch { OnContent = "On", OffContent = "Off", MinWidth = 0 };
+        AutomationProperties.SetName(toggle, name);
+        AutomationProperties.SetHelpText(toggle, info);
+        toggle.Toggled += (_, _) =>
         {
-            Height = 76, CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1),
-            Children =
-            {
-                wash, hover, track,
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal, Spacing = 14, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 104, 0),
-                    Children =
-                    {
-                        badge,
-                        new StackPanel
-                        {
-                            VerticalAlignment = VerticalAlignment.Center, Spacing = 2,
-                            Children = { new TextBlock { Text = name, FontSize = 15, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold }, state },
-                        },
-                    },
-                },
-            },
+            // Only when it differs from the unit: Sync sets the switch too.
+            if (!syncing && unit?.Shown is { } st && toggle.IsOn != st.Is(key)) ToggleExtra(i);
         };
-        var button = Bare(face);
-        button.CornerRadius = new CornerRadius(14);
-        AutomationProperties.SetName(button, name);
-        Hover(button, hover);
-        button.Click += (_, _) => ToggleExtra(i);
 
         // ⓘ: the tooltip shows on hover or keyboard focus; a click or tap opens the same text.
-        var tip = new StackPanel
+        StackPanel Tip() => new()
         {
             MaxWidth = 300, Spacing = 4,
             Children =
             {
-                new TextBlock { Text = name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
-                new TextBlock { Text = info, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, LineHeight = 18 },
+                new TextBlock { Text = name, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
+                new TextBlock { Text = info, FontSize = 12, TextWrapping = TextWrapping.Wrap, LineHeight = 16 },
             },
         };
         var infoButton = new Button
         {
-            Width = 32, Height = 32, CornerRadius = new CornerRadius(16), Padding = new Thickness(0), Background = Palette.B(Paint.Hex(0, 0)),
-            BorderThickness = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 66, 0), Content = new FontIcon { Glyph = "", FontSize = 16 },
+            Width = 32, Height = 32, CornerRadius = new CornerRadius(4), Padding = new Thickness(0), Background = Palette.B(Paint.Hex(0, 0)),
+            BorderThickness = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, Content = new FontIcon { Glyph = "\uE946", FontSize = 16 },
         };
         AutomationProperties.SetName(infoButton, "About " + name);
         AutomationProperties.SetHelpText(infoButton, info);
-        ToolTipService.SetToolTip(infoButton, new ToolTip { Content = tip });
-        infoButton.Flyout = new Flyout
-        {
-            Content = new StackPanel
-            {
-                MaxWidth = 300, Spacing = 4,
-                Children =
-                {
-                    new TextBlock { Text = name, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold },
-                    new TextBlock { Text = info, FontSize = 12.5, TextWrapping = TextWrapping.Wrap, LineHeight = 18 },
-                },
-            },
-        };
-        AutomationProperties.SetHelpText(button, info);
+        ToolTipService.SetToolTip(infoButton, new ToolTip { Content = Tip() });
+        infoButton.Flyout = new Flyout { Content = Tip() };
 
-        tiles.Add(new ExtraTile
+        var card = new SettingsCard
         {
-            Index = i, Button = button, Face = face, Wash = wash, Badge = badge, SwitchTrack = track, SwitchKnob = knob, Icon = glyph, State = state, Info = infoButton,
-        });
-        return new Grid { Children = { button, infoButton } };
+            Header = title, Description = sub, HeaderIcon = icon, MinHeight = 68,
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { infoButton, toggle } },
+        };
+        tiles.Add(new OptionCard { Index = i, Card = card, Icon = icon, Name = title, Desc = sub, Toggle = toggle, Info = infoButton });
+        return card;
     }
 
     // ------------------------------------------------------------ units
@@ -602,27 +569,23 @@ public sealed partial class AcPage : Page
         panel.SwingIcon!.Strokes[0].StrokeDashArray = swing ? null : [2.4 / 1.8, 2.2 / 1.8];
     }
 
-    void ShowTile(ExtraTile t, AcState? st, Palette p)
+    void ShowTile(OptionCard t, AcState? st, Palette p)
     {
-        var (key, name, idle, _, _, colourHex) = Extras[t.Index];
-        var col = Paint.Hex(colourHex);
+        var (key, name, desc, _, _) = Extras[t.Index];
         bool on = st?.Is(key) == true;
+        // Turbo only works in Cool and Heat: its row is greyed out, as in Windows Settings, but keeps its ⓘ.
         bool disabled = st == null || (key == "Tur" && st.Mode is not (AcState.Cool or AcState.Heat));
-        t.Button.IsEnabled = !disabled;
-        t.Button.Opacity = disabled && st != null ? 0.5 : 1;
-        t.State.Text = st == null ? "" : key == "Tur" && disabled ? "Cool and Heat only" : on ? "On" : idle;
-        t.State.Foreground = Palette.B(on ? (p.Dark ? Paint.Mix(col, Paint.Hex(0xFFFFFF), 0.35) : col) : p.Text3);
-        t.Face.Background = Palette.B(p.Card);
-        t.Info.Foreground = Palette.B(p.Text3);
-        t.Face.BorderBrush = Palette.B(on ? Paint.WithAlpha(col, 0.53) : p.CardStroke);
-        t.Wash.Background = on ? Draw.Gradient(new(0, 0), new(1, 1), (0, Paint.WithAlpha(col, 0.14)), (0.6, Paint.WithAlpha(col, 0.03))) : null;
-        t.Badge.Background = Palette.B(on ? col : Paint.WithAlpha(col, 0.12));
-        Colour(t.Icon, on ? Paint.Hex(0xFFFFFF) : (p.Dark ? Paint.Mix(col, Paint.Hex(0xFFFFFF), 0.35) : col));
-        t.SwitchTrack.Background = on ? Palette.B(col) : null;
-        t.SwitchTrack.BorderBrush = Palette.B(on ? col : p.SwitchOff);
-        t.SwitchKnob.Fill = Palette.B(on ? Paint.Hex(0xFFFFFF) : p.SwitchOff);
-        t.SwitchKnob.Margin = new Thickness(on ? 23 : 3, 0, 0, 0);
-        AutomationProperties.SetName(t.Button, $"{name}, {(on ? "on" : "off")}");
+        t.Toggle.IsEnabled = !disabled;
+        t.Toggle.IsOn = on && !disabled;
+        // After a theme change or switching units the switch can keep drawing its old state: snap it to the right one.
+        VisualStateManager.GoToState(t.Toggle, t.Toggle.IsOn ? "Off" : "On", false);
+        VisualStateManager.GoToState(t.Toggle, t.Toggle.IsOn ? "On" : "Off", false);
+        t.Desc.Text = key == "Tur" && disabled && st != null ? "Only in Cool and Heat" : desc;
+        var fg = Palette.B(disabled ? p.Text3 : p.Text);
+        t.Name.Foreground = t.Icon.Foreground = fg;
+        t.Desc.Foreground = Palette.B(p.Text2);
+        t.Info.Foreground = Palette.B(p.Text2);
+        AutomationProperties.SetItemStatus(t.Toggle, disabled && st != null ? "Only in Cool and Heat" : "");
     }
 
     // ------------------------------------------------------------ changes

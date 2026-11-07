@@ -49,7 +49,7 @@
             <ContentPresenter x:Name="ArtHost" Grid.Row="1" Margin="-16,2,-16,0" />
 
             <!-- its main control -->
-            <ContentPresenter x:Name="BodyHost" Grid.Row="2" HorizontalAlignment="Center" />
+            <ContentPresenter x:Name="BodyHost" Grid.Row="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" />
 
             <!-- footer -->
             <Grid Grid.Row="3" ColumnSpacing="8" MinHeight="32">

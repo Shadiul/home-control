@@ -4,16 +4,17 @@ using LedControl.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
 namespace LedControl.Pages;
 
 /// <summary>
-/// Light: a realistic bulb that glows in the light's colour (click it to turn the light on or off), mode,
-/// brightness and warmth or colour in one grouped card, and illustrated scene cards.
+/// Light: a realistic bulb that glows in the light's colour (click it to turn the light on or off) beside a
+/// controls card lit by the light's colour: White / Colour tiles, thick brightness and warmth sliders, white
+/// presets or colour swatches. Then illustrated scene cards.
 /// </summary>
 public sealed partial class LightPage : Page
 {
@@ -24,6 +25,9 @@ public sealed partial class LightPage : Page
         ("Lime", 0x9BCB4A), ("Green", 0x3DAA67), ("Teal", 0x2BB5A8), ("Sky", 0x3A9EE8),
         ("Blue", 0x3E6FE0), ("Violet", 0x7A5BE0), ("Purple", 0xA85BD8), ("Pink", 0xE05B9E),
     ];
+
+    // White presets: name and warmth (0 warm to 100 cool).
+    static readonly (string Name, int Temp)[] Whites = [("Candle", 0), ("Warm", 25), ("Neutral", 50), ("Daylight", 75), ("Cool", 100)];
 
     // Scene illustrations on an 80 × 60 grid: the pool of light in the scene's colour, faint room details,
     // the main objects, cords and lamp arms, and small lit details. Plus the scene's colour and the room's.
@@ -47,10 +51,41 @@ public sealed partial class LightPage : Page
             "M40 0V8 M30.5 15h19 M30.5 21h19 M35 8.8v18.4 M45 8.8v18.4", "M26 40h3v3h-3z M52 44h3v3h-3z M40 48h3v3h-3z"),
     };
 
+    const string SunIcon = "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4";
+    const string DimSunIcon = "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 5v1M12 18v1M5 12h1M18 12h1";
+    const string PaletteIcon = "M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.5 1.7-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3zM7.5 11.5h.01M9.5 7.5h.01M14.5 7.5h.01";
+
+    sealed class ModeTile
+    {
+        public required Button Button;
+        public required Border Face, Badge, Shadow;
+        public required Path[] Icon;
+        public required TextBlock Name, Sub;
+    }
+
+    sealed class WhiteTile
+    {
+        public required Button Button;
+        public required Border Face;
+        public required Ellipse Glow;
+        public required TextBlock Name;
+        public required int Temp;
+    }
+
     readonly BigBulb bulb = new();
-    readonly List<(Button Button, Border Ring, int H, int S)> swatchButtons = [];
+    readonly ThickSlider brightness = new("Brightness") { Minimum = 1, Maximum = 100, LargeChange = 10 };
+    readonly ThickSlider warmth = new("Warmth, from warm to cool white") { Minimum = 0, Maximum = 100, LargeChange = 10 };
+    readonly Path[] dimSun, brightSun;
+    readonly ModeTile whiteTile, colourTile;
+    readonly List<WhiteTile> whiteTiles = [];
+    readonly List<(SwatchTile Tile, string Name, int H, int S)> swatchButtons = [];
+    readonly ColorPicker picker = new()
+    {
+        ColorSpectrumShape = ColorSpectrumShape.Box, IsAlphaEnabled = false, IsColorSliderVisible = false,
+        IsColorChannelTextInputVisible = false, IsHexInputVisible = true,
+    };
     readonly List<(Button Button, Border Ring, Scene Scene)> sceneButtons = [];
-    readonly SolidColorBrush warmthThumb = new(Paint.Hex(0xF2A541));
+    SwatchTile? customTile;
     bool syncing;
     int lastH = 30, lastS = 100;
 
@@ -61,8 +96,27 @@ public sealed partial class LightPage : Page
         syncing = true; // controls raise change events while the XAML loads
         InitializeComponent();
         BulbBox.Child = bulb;
-        StyleWarmthSlider();
+
+        whiteTile = BuildModeTile("White", "Warm to cool whites", SunIcon, 0, White_Click);
+        colourTile = BuildModeTile("Colour", "Any colour you like", PaletteIcon, 1, Colour_Click);
+
+        var (dimBox, dim) = Draw.LineIcon(DimSunIcon, 16, 1.8);
+        var (brightBox, bright) = Draw.LineIcon(SunIcon, 20, 1.8);
+        dimSun = dim;
+        brightSun = bright;
+        dimBox.VerticalAlignment = brightBox.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(brightness, 1);
+        Grid.SetColumn(brightBox, 2);
+        BrightnessRow.Children.Add(dimBox);
+        BrightnessRow.Children.Add(brightness);
+        BrightnessRow.Children.Add(brightBox);
+        brightness.ValueChanged += _ => Brightness_Changed();
+        WarmthHost.Content = warmth;
+        warmth.ValueChanged += _ => Temp_Changed();
+
+        foreach (var (name, temp) in Whites) WhiteGrid.Children.Add(BuildWhiteTile(name, temp));
         foreach (var (name, rgb) in SwatchColours) SwatchGrid.Children.Add(SwatchButton(name, rgb));
+        SwatchGrid.Children.Add(CustomButton());
         foreach (var scene in LightSession.Scenes) SceneGrid.Children.Add(SceneButton(scene));
         syncing = false;
 
@@ -76,47 +130,111 @@ public sealed partial class LightPage : Page
 
     // ------------------------------------------------------------ building
 
-    /// <summary>The warmth slider's track runs from warm to cool white, and its thumb shows the colour chosen.</summary>
-    void StyleWarmthSlider()
+    /// <summary>Preview beside the controls when there's room for both (340 + 420), else stacked.</summary>
+    void Split_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var gradient = Draw.Gradient(new(0, 0), new(1, 0), (0, Paint.Hex(0xF2A541)), (0.55, Paint.Hex(0xFCEBD2)), (1, Paint.Hex(0xC9DDFB)));
-        var none = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-        foreach (var state in new[] { "", "PointerOver", "Pressed", "Disabled" })
+        bool wide = e.NewSize.Width >= 776;
+        Split.ColumnDefinitions[1].Width = wide ? new GridLength(1.25, GridUnitType.Star) : new GridLength(0);
+        Split.ColumnSpacing = wide ? 16 : 0;
+        Grid.SetColumn(ControlsCard, wide ? 1 : 0);
+        Grid.SetRow(ControlsCard, wide ? 0 : 1);
+    }
+
+    /// <summary>A 60px mode tile: an icon badge, the name and a line under it.</summary>
+    ModeTile BuildModeTile(string name, string sub, string icon, int column, RoutedEventHandler click)
+    {
+        var (box, strokes) = Draw.LineIcon(icon, 18, 1.8);
+        var badge = new Border { Width = 34, Height = 34, CornerRadius = new CornerRadius(10), Child = box };
+        var title = new TextBlock { Text = name, FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
+        var line = new TextBlock { Text = sub, FontSize = 12, Opacity = 0.8, TextTrimming = TextTrimming.CharacterEllipsis };
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { title, line } };
+        Grid.SetColumn(texts, 1);
+        var face = new Border
         {
-            TempSlider.Resources["SliderTrackFill" + state] = gradient;
-            TempSlider.Resources["SliderTrackValueFill" + state] = none;
-        }
-        foreach (var state in new[] { "", "PointerOver", "Pressed" }) TempSlider.Resources["SliderThumbBackground" + state] = warmthThumb;
-        TempSlider.Background = gradient;
-        TempSlider.Foreground = none;
+            Height = 60, CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1), Padding = new Thickness(14, 0, 14, 0),
+            Child = new Grid
+            {
+                ColumnSpacing = 12, VerticalAlignment = VerticalAlignment.Center,
+                ColumnDefinitions = { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) } },
+                Children = { badge, texts },
+            },
+        };
+        var shadow = Glow.Shadow(16);
+        shadow.Background = Glow.Soft(Paint.Hex(0), 0.18);
+        var button = new Button
+        {
+            Style = (Style)Application.Current.Resources["BareButton"], HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, Content = new Grid { Children = { shadow, face } },
+        };
+        AutomationProperties.SetName(button, $"{name}: {sub}");
+        button.Click += click;
+        Grid.SetColumn(button, column);
+        ModeTiles.Children.Add(button);
+        return new ModeTile { Button = button, Face = face, Badge = badge, Shadow = shadow, Icon = strokes, Name = title, Sub = line };
+    }
+
+    static Color WhiteColour(int temp) => Paint.Mix(Paint.Hex(0xFFC47E), Paint.Hex(0xEEF4FF), temp / 100.0);
+
+    UIElement BuildWhiteTile(string name, int temp)
+    {
+        var c = WhiteColour(temp);
+        var glow = new Ellipse { Width = 36, Height = 36, Margin = new Thickness(-8), Fill = Glow.Soft(c, 0.8), Opacity = 0 };
+        var label = new TextBlock { Text = name, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center };
+        var face = new Border
+        {
+            Height = 56, CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1),
+            Child = new StackPanel
+            {
+                Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                Children =
+                {
+                    new Grid
+                    {
+                        Width = 20, Height = 20, HorizontalAlignment = HorizontalAlignment.Center,
+                        Children = { glow, new Ellipse { Fill = new SolidColorBrush(c), Stroke = Paint.Brush(0, 0x1A), StrokeThickness = 1 } },
+                    },
+                    label,
+                },
+            },
+        };
+        var button = new Button
+        {
+            Style = (Style)Application.Current.Resources["BareButton"], HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch, Content = face,
+        };
+        AutomationProperties.SetName(button, $"{name} white");
+        ToolTipService.SetToolTip(button, $"{name} white");
+        button.Click += (_, _) => Session.Submit(LightCommand.White(CurrentLevel(), temp));
+        whiteTiles.Add(new WhiteTile { Button = button, Face = face, Glow = glow, Name = label, Temp = temp });
+        return button;
     }
 
     UIElement SwatchButton(string name, uint rgb)
     {
         var c = Paint.Hex(rgb);
         var (h, s, _) = ColorMath.RgbToHsv(c.R, c.G, c.B);
-        var ring = new Border
-        {
-            CornerRadius = new CornerRadius(4), BorderThickness = new Thickness(2), Padding = new Thickness(3),
-            Child = new Border { CornerRadius = new CornerRadius(2), Background = new SolidColorBrush(c) },
-        };
-        var button = new Button
-        {
-            Style = (Style)Application.Current.Resources["BareButton"], Height = 40, CornerRadius = new CornerRadius(4),
-            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch, Content = ring,
-        };
-        AutomationProperties.SetName(button, name);
-        ToolTipService.SetToolTip(button, name);
+        var tile = new SwatchTile(name, c);
         int hue = (int)Math.Round(h) % 360, sat = (int)Math.Round(s * 100);
-        button.Click += (_, _) =>
+        tile.Click += (_, _) =>
         {
             lastH = hue;
             lastS = sat;
             Session.Submit(LightCommand.Colour(hue, sat, CurrentLevel()));
         };
-        swatchButtons.Add((button, ring, hue, sat));
-        return button;
+        swatchButtons.Add((tile, name, hue, sat));
+        return tile;
+    }
+
+    /// <summary>Custom: the same tile with a rainbow swatch, opening a colour picker.</summary>
+    UIElement CustomButton()
+    {
+        var tile = new SwatchTile("Custom colour", Paint.Hex(0x808080), SwatchTile.RainbowFace());
+        var flyout = new Flyout { Content = picker };
+        flyout.Opening += PickerFlyout_Opening;
+        tile.Flyout = flyout;
+        picker.ColorChanged += Picker_ColorChanged;
+        customTile = tile;
+        return tile;
     }
 
     UIElement SceneButton(Scene scene)
@@ -191,7 +309,7 @@ public sealed partial class LightPage : Page
 
     // ------------------------------------------------------------ showing the light
 
-    int CurrentLevel() => (int)BrightnessSlider.Value;
+    int CurrentLevel() => (int)brightness.Value;
 
     void Sync()
     {
@@ -224,12 +342,12 @@ public sealed partial class LightPage : Page
             PowerSwitch.IsOn = on;
             VisualStateManager.GoToState(PowerSwitch, on ? "On" : "Off", false); // after a theme change it can keep showing the old state
             PowerText.Text = !known ? "" : on ? "On" : "Off";
-            foreach (var c in new Control[] { WhiteButton, ColourButton, BrightnessSlider, TempSlider, PreviewButton }) c.IsEnabled = known;
+            foreach (var c in new Control[] { whiteTile.Button, colourTile.Button, brightness, warmth, PreviewButton }) c.IsEnabled = known;
 
             int level = st == null ? 0 : colour ? st.V : st.Brightness;
             var lightColour = st != null ? ToColor(st.Rgb) : Paint.Hex(0xFFC47E);
             bulb.Show(on, lightColour, level / 100.0);
-            string shade = st == null ? "" : colour ? ColorMath.HueName(st.H, st.S) : WhiteName(st.Temp);
+            string shade = st == null ? "" : colour ? ColourName(st) : WhiteName(st.Temp);
             Headline.Text = st == null ? (kind == "busy" ? "Connecting…" : "Unknown")
                 : Session.MusicRunning ? "Music sync is running"
                 : on ? $"{shade} · {level}%" : "Off";
@@ -240,34 +358,66 @@ public sealed partial class LightPage : Page
             StageGlow.Background = on
                 ? Draw.Radial(new(0.5, 0.38), 0.7, 0.7, (0, Paint.WithAlpha(lightColour, 0.33)), (0.38, Paint.WithAlpha(lightColour, 0.09)), (0.7, Paint.WithAlpha(lightColour, 0)))
                 : null;
+            // A soft wash of the light's colour from the top right of the controls; none when off.
+            Wash.Background = on
+                ? Draw.Radial(new(1, 0), 1.2, 0.9, (0, Paint.WithAlpha(lightColour, 0.25)), (0.4, Paint.WithAlpha(lightColour, 0.078)), (0.7, Paint.WithAlpha(lightColour, 0)))
+                : null;
 
-            // Mode, brightness, warmth or colour
-            WhiteButton.IsChecked = known && !colour;
-            ColourButton.IsChecked = known && colour;
-            ColourButton.Visibility = st?.HasColour == false ? Visibility.Collapsed : Visibility.Visible;
+            // Mode tiles
+            ShowModeTile(whiteTile, known && !colour, p);
+            ShowModeTile(colourTile, known && colour, p);
+            colourTile.Button.Visibility = st?.HasColour == false ? Visibility.Collapsed : Visibility.Visible;
             WhitePanel.Visibility = colour || st?.HasTemp == false ? Visibility.Collapsed : Visibility.Visible;
             ColourPanel.Visibility = colour ? Visibility.Visible : Visibility.Collapsed;
             if (st != null)
             {
-                BrightnessSlider.Value = Math.Max(1, level);
-                TempSlider.Value = st.Temp;
+                if (!brightness.IsDragging) brightness.Value = Math.Max(1, level);
+                if (!warmth.IsDragging) warmth.Value = st.Temp;
                 if (colour)
                 {
                     lastH = st.H;
                     lastS = st.S;
                 }
             }
-            BrightnessText.Text = known ? $"{Math.Max(1, level)}%" : "";
-            int temp = st?.Temp ?? 0;
-            WarmthText.Text = temp < 35 ? "Warm" : temp < 70 ? "Neutral" : "Cool";
-            warmthThumb.Color = Paint.Mix(Paint.Hex(0xF2A541), Paint.Hex(0x9DBFF5), temp / 100.0);
+            var well = Palette.B(p.Dark ? Paint.Hex(0x383838) : Paint.Hex(0xEFEFEF));
+            BrightnessPill.Background = WarmthPill.Background = ColourPill.Background = well;
 
-            foreach (var (button, ring, h, s) in swatchButtons)
+            // Brightness: fills from a dim to a full version of the light's colour, with a glow.
+            var track = p.Dark ? Paint.Hex(0x454545) : Paint.Hex(0xDCDCDC);
+            brightness.SetColours(Palette.B(track), Draw.Gradient(new(0, 0), new(1, 0), (0, Paint.Mix(lightColour, track, 0.55)), (1, lightColour)),
+                                  on ? lightColour : null, Paint.Mix(lightColour, Paint.Hex(0), 0.25));
+            BrightnessText.Text = known ? $"{Math.Max(1, level)}%" : "--";
+            brightness.ValueText = BrightnessText.Text;
+            Draw.Tint(dimSun, p.Text3);
+            Draw.Tint(brightSun, p.Text2);
+
+            // Warmth: the track runs warm to cool; the handle takes the colour it's on.
+            int temp = st?.Temp ?? 0;
+            warmth.SetColours(Draw.Gradient(new(0, 0), new(1, 0), (0, Paint.Hex(0xF09A34)), (0.35, Paint.Hex(0xFFD9A3)), (0.6, Paint.Hex(0xFFF6EA)), (1, Paint.Hex(0xC9DDFB))),
+                              null, null, Paint.Mix(Paint.Hex(0xE8892A), Paint.Hex(0x6F9FE8), temp / 100.0));
+            WarmthText.Text = WarmthName(temp);
+            warmth.ValueText = WarmthText.Text;
+            foreach (var w in whiteTiles)
             {
-                bool picked = colour && Math.Min(Math.Abs(h - st!.H), 360 - Math.Abs(h - st.H)) <= 4 && Math.Abs(s - st.S) <= 6;
-                ring.BorderBrush = Palette.B(picked ? p.Accent : Paint.Hex(0, 0));
-                AutomationProperties.SetItemStatus(button, picked ? "Selected" : "");
+                bool picked = known && !colour && st!.Temp == w.Temp;
+                w.Face.Background = Palette.B(picked ? p.Card : p.Ctrl);
+                w.Face.BorderBrush = Palette.B(picked ? p.Accent : p.CtrlStroke);
+                w.Glow.Opacity = picked ? 1 : 0;
+                w.Name.Foreground = Palette.B(p.Text);
+                w.Button.IsEnabled = known;
+                AutomationProperties.SetItemStatus(w.Button, picked ? "Selected" : "");
             }
+
+            // Colour
+            foreach (var (tile, _, h, s) in swatchButtons)
+            {
+                tile.Show(p, colour && Picked(st!, h, s));
+                tile.IsEnabled = known;
+            }
+            customTile?.Show(p, false);
+            if (customTile != null) customTile.IsEnabled = known;
+            ColourDot.Fill = Palette.B(lightColour);
+            ColourNameText.Text = st != null && colour ? ColourName(st) : "";
 
             // Scenes: the one the light matches gets a ring.
             foreach (var (button, ring, scene) in sceneButtons)
@@ -286,6 +436,26 @@ public sealed partial class LightPage : Page
         }
     }
 
+    static bool Picked(LightState st, int h, int s) => Math.Min(Math.Abs(h - st.H), 360 - Math.Abs(h - st.H)) <= 4 && Math.Abs(s - st.S) <= 6;
+
+    /// <summary>The swatch's name when the light matches one, otherwise a general name for the hue.</summary>
+    string ColourName(LightState st) =>
+        swatchButtons.FirstOrDefault(b => Picked(st, b.H, b.S)).Name ?? ColorMath.HueName(st.H, st.S);
+
+    static string WarmthName(int temp) => temp < 35 ? "Warm" : temp < 70 ? "Neutral" : "Cool";
+
+    static void ShowModeTile(ModeTile t, bool picked, Palette p)
+    {
+        var fg = picked ? p.OnAccent : p.Text;
+        t.Face.Background = Palette.B(picked ? p.Accent : p.Ctrl);
+        t.Face.BorderBrush = Palette.B(picked ? p.Accent : p.CtrlStroke);
+        t.Badge.Background = Palette.B(picked ? Paint.Hex(0xFFFFFF, 0x33) : (p.Dark ? Paint.Hex(0x383838) : Paint.Hex(0xEFEFEF)));
+        t.Shadow.Opacity = picked ? 1 : 0;
+        t.Name.Foreground = t.Sub.Foreground = Palette.B(fg);
+        Draw.Tint(t.Icon, fg);
+        AutomationProperties.SetItemStatus(t.Button, picked ? "Selected" : "");
+    }
+
     // ------------------------------------------------------------ changes
 
     void Preview_Click(object sender, RoutedEventArgs e)
@@ -300,29 +470,29 @@ public sealed partial class LightPage : Page
     }
 
     void White_Click(object sender, RoutedEventArgs e) =>
-        Session.Submit(LightCommand.White(CurrentLevel(), (int)TempSlider.Value));
+        Session.Submit(LightCommand.White(CurrentLevel(), (int)warmth.Value));
 
     void Colour_Click(object sender, RoutedEventArgs e) =>
         Session.Submit(LightCommand.Colour(lastH, lastS, CurrentLevel()));
 
-    void Brightness_Changed(object sender, RangeBaseValueChangedEventArgs e)
+    void Brightness_Changed()
     {
         if (syncing) return;
         var st = Session.Shown;
         Session.Submit(st?.IsColour == true
             ? LightCommand.Colour(lastH, lastS, CurrentLevel())
-            : LightCommand.White(CurrentLevel(), (int)TempSlider.Value));
+            : LightCommand.White(CurrentLevel(), (int)warmth.Value));
     }
 
-    void Temp_Changed(object sender, RangeBaseValueChangedEventArgs e)
+    void Temp_Changed()
     {
-        if (!syncing) Session.Submit(LightCommand.White(CurrentLevel(), (int)TempSlider.Value));
+        if (!syncing) Session.Submit(LightCommand.White(CurrentLevel(), (int)warmth.Value));
     }
 
-    void PickerFlyout_Opening(object sender, object e)
+    void PickerFlyout_Opening(object? sender, object e)
     {
         syncing = true;
-        Picker.Color = ToColor(ColorMath.HsvToRgb(lastH, lastS / 100.0, 1));
+        picker.Color = ToColor(ColorMath.HsvToRgb(lastH, lastS / 100.0, 1));
         syncing = false;
     }
 

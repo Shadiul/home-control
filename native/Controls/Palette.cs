@@ -27,6 +27,13 @@ public sealed record Palette(
                   Paint.Hex(0xDCDCDC), Paint.Hex(0xEAEAEA), Paint.Hex(0xFFFFFF), Paint.Hex(0x5D5D5D), Paint.Hex(0x000000, 0x09));
     }
 
+    /// <summary>The translucent surface of tiles and swatches, and its subtle 1px stroke.</summary>
+    public Color Tile => Dark ? Paint.Hex(0xFFFFFF, 0x0F) : Paint.Hex(0xFFFFFF, 0xBF);
+    public Color TileStroke => Dark ? Paint.Hex(0xFFFFFF, 0x14) : Paint.Hex(0x000000, 0x12);
+
+    /// <summary>A small button on a tile (the quick panel's − and +).</summary>
+    public Color TileButton => Dark ? Paint.Hex(0xFFFFFF, 0x14) : Paint.Hex(0x000000, 0x0D);
+
     static Color SystemColour(string key, uint fallback) =>
         Application.Current.Resources.TryGetValue(key, out var v) && v is Color c ? c : Paint.Hex(fallback);
 

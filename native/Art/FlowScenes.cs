@@ -76,20 +76,30 @@ static class Draw
 }
 
 /// <summary>
-/// Fan speed: a housing with a rotor that spins faster at each step, a soft glow, and streams of air flowing
-/// out to both sides, more of them, longer and faster at each step. Still while the unit is off.
+/// Fan speed: a round fan in a bezel, centred inside its 270° ring slider so the ring keeps an even distance
+/// from it. A recessed well, seven swept blades with a light edge, a front grille of two thin rings and twelve
+/// spokes, a metal hub with a highlight, and a faint blur disc that strengthens with speed. Rings of air circle
+/// between the fan and the slider, turning the same way as the rotor: one more ring, and faster, at each step.
+/// The rotor speeds up from Low to High and stands still while the unit is off.
 /// </summary>
 public sealed partial class FanScene : Canvas
 {
+    const double Cx = 140, Cy = 104;
+    const string BladeData = "M0 -9C9 -13 17 -24 15.5 -39.5C8.5 -42.5 -1.5 -40 -5 -32C-6.5 -23 -4 -14 0 -9Z";
+
     readonly Ellipse glow = new();
     readonly Canvas winds = new();
-    readonly Ellipse housing = new() { Width = 88, Height = 88, StrokeThickness = 3 };
-    readonly Ellipse inner = new() { Width = 76, Height = 76, StrokeThickness = 1, StrokeDashArray = [2, 4] };
+    readonly Ellipse bezel = new() { Width = 102, Height = 102, StrokeThickness = 1 };
+    readonly Ellipse well = new() { Width = 90, Height = 90, StrokeThickness = 1.5 };
+    readonly Ellipse blur = new() { Width = 82, Height = 82 };
     readonly Canvas rotor = new();
     readonly RotateTransform spin = new();
-    readonly Path[] blades = new Path[5];
-    readonly Ellipse hub = new() { Width = 16, Height = 16, StrokeThickness = 3 };
-    readonly TextBlock caption = new() { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Width = 120, TextAlignment = TextAlignment.Center };
+    readonly Path[] blades = new Path[7];
+    readonly Ellipse ring1 = new() { Width = 48, Height = 48, StrokeThickness = 1 };
+    readonly Ellipse ring2 = new() { Width = 68, Height = 68, StrokeThickness = 1 };
+    readonly Path spokes;
+    readonly Ellipse hub = new() { Width = 22, Height = 22, StrokeThickness = 2.5 };
+    readonly TextBlock caption = new() { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Width = 80, TextAlignment = TextAlignment.Center };
     readonly Storyboard spinning = new() { RepeatBehavior = RepeatBehavior.Forever };
     readonly Storyboard flowing = new() { RepeatBehavior = RepeatBehavior.Forever };
     string shownKey = "";
@@ -100,19 +110,30 @@ public sealed partial class FanScene : Canvas
         Height = ArcSelector.StageHeight;
         Children.Add(glow);
         Children.Add(winds);
-        Children.Add(Draw.At(housing, 96, 78));
-        Children.Add(Draw.At(inner, 102, 84));
-        // Rotor: five curved blades round the centre (140, 122).
-        rotor.RenderTransform = new TransformGroup { Children = { spin, new ScaleTransform { ScaleX = 1.05, ScaleY = 1.05 }, new TranslateTransform { X = 140, Y = 122 } } };
-        for (int i = 0; i < 5; i++)
+        Children.Add(Draw.At(bezel, Cx - 51, Cy - 51));
+        Children.Add(Draw.At(well, Cx - 45, Cy - 45));
+        Children.Add(Draw.At(blur, Cx - 41, Cy - 41));
+        rotor.RenderTransform = new TransformGroup { Children = { spin, new TranslateTransform { X = Cx, Y = Cy } } };
+        for (int i = 0; i < blades.Length; i++)
         {
-            blades[i] = Draw.Shape("M0 -6C10 -12 22 -24 22 -32C14 -36 4 -30 0 -6Z");
-            blades[i].RenderTransform = new RotateTransform { Angle = 72 * i };
+            blades[i] = Draw.Shape(BladeData, null, new SolidColorBrush(Paint.Hex(0xFFFFFF, 0x59)), 1);
+            blades[i].RenderTransform = new RotateTransform { Angle = 360.0 / blades.Length * i };
             rotor.Children.Add(blades[i]);
         }
         Children.Add(rotor);
-        Children.Add(Draw.At(hub, 132, 114));
-        Children.Add(Draw.At(caption, 80, 178));
+        Children.Add(Draw.At(ring1, Cx - 24, Cy - 24));
+        Children.Add(Draw.At(ring2, Cx - 34, Cy - 34));
+        var grille = string.Concat(Enumerable.Range(0, 12).Select(k =>
+        {
+            double a = k * Math.PI / 6, c = Math.Cos(a), sn = Math.Sin(a);
+            return $"M{Draw.F(Cx + 13 * c)} {Draw.F(Cy + 13 * sn)}L{Draw.F(Cx + 44 * c)} {Draw.F(Cy + 44 * sn)}";
+        }));
+        spokes = Draw.Shape(grille, null, null, 1);
+        Children.Add(spokes);
+        Children.Add(Draw.At(hub, Cx - 11, Cy - 11));
+        hub.Fill = Draw.Radial(new(0.38, 0.32), 0.75, 0.75, (0, Paint.Hex(0xFFFFFF)), (0.55, Paint.Hex(0xD9DDE2)), (1, Paint.Hex(0x9AA1AA)));
+        Children.Add(Draw.At(new Ellipse { Width = 5.2, Height = 5.2, Fill = Paint.Brush(0xFFFFFF, 0xB3) }, 136.5 - 2.6, 100.5 - 2.6));
+        Children.Add(Draw.At(caption, Cx - 40, 182));
 
         var turn = new DoubleAnimation { From = 0, To = 360 };
         Storyboard.SetTarget(turn, spin);
@@ -126,16 +147,23 @@ public sealed partial class FanScene : Canvas
     {
         int n = auto ? 3 : Math.Clamp(level, 1, 5);
         var blade = on ? (auto ? p.Text2 : p.Accent) : p.Text3;
-        foreach (var b in blades) b.Fill = Palette.B(blade);
-        housing.Fill = hub.Fill = Palette.B(p.Card);
-        housing.Stroke = inner.Stroke = Palette.B(p.Track);
+        foreach (var b in blades) b.Fill = new SolidColorBrush(Paint.WithAlpha(blade, 0.92));
+        bezel.Fill = Draw.Vertical((0, p.Card), (1, p.Track));
+        bezel.Stroke = Palette.B(p.CtrlStroke);
+        var deep = Paint.Mix(p.Card, p.Dark ? Paint.Hex(0xFFFFFF) : Paint.Hex(0), p.Dark ? 0.04 : 0.035);
+        well.Fill = Draw.Radial(new(0.5, 0.42), 0.6, 0.6, (0, p.Card), (1, deep));
+        well.Stroke = Palette.B(p.Track);
+        blur.Fill = Palette.B(blade);
+        blur.Opacity = on ? 0.05 + n * 0.035 : 0;
+        var grilleBrush = Palette.B(Paint.WithAlpha(p.Text3, 0.22));
+        ring1.Stroke = ring2.Stroke = spokes.Stroke = grilleBrush;
         hub.Stroke = Palette.B(blade);
         caption.Text = auto ? "AUTO" : on ? "" : "Off";
         caption.Foreground = Palette.B(auto ? p.Accent : p.Text3);
 
-        double gr = 52 + n * 7;
+        double gr = 58 + n * 5;
         glow.Width = glow.Height = gr * 2;
-        Draw.At(glow, 140 - gr, 122 - gr);
+        Draw.At(glow, Cx - gr, Cy - gr);
         glow.Fill = Draw.Radial((0, Paint.WithAlpha(p.Accent, 0.35)), (1, Paint.WithAlpha(p.Accent, 0)));
         glow.Opacity = on ? Math.Min(1, 0.35 + n * 0.13) : 0;
 
@@ -153,31 +181,24 @@ public sealed partial class FanScene : Canvas
         double turnSeconds = auto ? 1.2 : new[] { 2.4, 1.5, 1.0, 0.7, 0.45 }[n - 1];
         ((DoubleAnimation)spinning.Children[0]).Duration = new Duration(TimeSpan.FromSeconds(turnSeconds));
 
-        double dur = auto ? 1.3 : new[] { 2.2, 1.6, 1.15, 0.85, 0.6 }[n - 1];
-        double width = 2 + n * 0.25;
-        var wind = Draw.Gradient(new(0, 0), new(1, 0),
-            (0, Paint.WithAlpha(p.Accent, 0.2)), (0.5, p.Accent), (1, Paint.WithAlpha(p.Accent, 0.2)));
+        // Rings of air: a dashed circle each, its dashes running clockwise like the rotor.
+        double dur = auto ? 1.6 : new[] { 3, 2.2, 1.6, 1.15, 0.8 }[n - 1];
         for (int k = 0; k < n; k++)
         {
-            double off = (k - (n - 1) / 2.0) * 12, reach = 30 + k * 4 + n * 3, y = 122 + off;
-            string right = $"M186 {Draw.F(y)}C{Draw.F(200 + reach * 0.3)} {Draw.F(y - 4)} {Draw.F(210 + reach * 0.6)} {Draw.F(y + 10)} {Draw.F(214 + reach * 0.7)} {Draw.F(y + 30 + k * 4)}";
-            string left = $"M94 {Draw.F(y)}C{Draw.F(80 - reach * 0.3)} {Draw.F(y - 4)} {Draw.F(70 - reach * 0.6)} {Draw.F(y + 10)} {Draw.F(66 - reach * 0.7)} {Draw.F(y + 30 + k * 4)}";
-            foreach (var d in new[] { right, left })
+            double r = 56 + k * 3.6, dash = 10 + k * 3, width = 2.2 - k * 0.2;
+            string d = $"M{Draw.F(Cx - r)} {Draw.F(Cy)}a{Draw.F(r)} {Draw.F(r)} 0 1 1 {Draw.F(2 * r)} 0a{Draw.F(r)} {Draw.F(r)} 0 1 1 {Draw.F(-2 * r)} 0";
+            var ring = Draw.Shape(d, null, Palette.B(p.Accent), width, round: true);
+            ring.StrokeDashArray = [dash / width, (40 - dash) / width]; // dashes are measured in stroke widths
+            ring.Opacity = 0.62 - k * 0.08;
+            winds.Children.Add(ring);
+            var move = new DoubleAnimation
             {
-                // Dashes are measured in stroke widths: 10 on, 12 off.
-                var path = Draw.Shape(d, null, wind, width, round: true);
-                path.StrokeDashArray = [10 / width, 12 / width];
-                path.Opacity = 0.45 + 0.1 * n - k * 0.04;
-                winds.Children.Add(path);
-                var move = new DoubleAnimation
-                {
-                    From = 0, To = -44 / width, Duration = new Duration(TimeSpan.FromSeconds(dur + k * 0.12)),
-                    EnableDependentAnimation = true, RepeatBehavior = RepeatBehavior.Forever,
-                };
-                Storyboard.SetTarget(move, path);
-                Storyboard.SetTargetProperty(move, "StrokeDashOffset");
-                flowing.Children.Add(move);
-            }
+                From = 0, To = -80 / width, Duration = new Duration(TimeSpan.FromSeconds(dur * (1 + k * 0.15))),
+                EnableDependentAnimation = true, RepeatBehavior = RepeatBehavior.Forever,
+            };
+            Storyboard.SetTarget(move, ring);
+            Storyboard.SetTargetProperty(move, "StrokeDashOffset");
+            flowing.Children.Add(move);
         }
         if (IsLoaded)
         {
@@ -206,7 +227,7 @@ public sealed partial class FanScene : Canvas
 public sealed partial class SideUnitScene : Canvas
 {
     static readonly double[] Angles = [0, 22.5, 45, 67.5, 90];
-    readonly Rectangle wall = new() { Width = 6, Height = 186, RadiusX = 2, RadiusY = 2 };
+    readonly Rectangle wall = new() { Width = 6, Height = 168, RadiusX = 2, RadiusY = 2 };
     readonly Path beam = new();
     readonly Path flap = new() { Stroke = new SolidColorBrush(Draw.Blade), StrokeThickness = 3, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
 
@@ -214,7 +235,9 @@ public sealed partial class SideUnitScene : Canvas
     {
         Width = ArcSelector.StageWidth;
         Height = ArcSelector.StageHeight;
-        Children.Add(Draw.At(wall, 26, 14));
+        // Drawn 14px higher, so the unit, its arc and labels span the same height as the other two panels.
+        RenderTransform = new TranslateTransform { Y = -14 };
+        Children.Add(Draw.At(wall, 26, 24));
         Children.Add(beam);
         Children.Add(Draw.Shape("M32 34H96A18 18 0 0 1 114 52V74L97 98H32Z",
             Draw.Gradient(new(0, 0), new(1, 1), (0, Paint.Hex(0xFFFFFF)), (0.65, Paint.Hex(0xEEF0F2)), (1, Paint.Hex(0xD5DADF))),

@@ -165,6 +165,34 @@ public sealed partial class MainWindow : Window
                     await SaveAsync(body, Path.Combine(dir, $"{tag}-full-{theme}.png"));
                     body.Background = null;
                 }
+                // The light in colour mode too (shown only: nothing is sent to the light).
+                if (tag == "light")
+                {
+                    var real = App.Instance!.Session.Shown;
+                    App.Instance.Session.Preview((real ?? new LightState()) with { On = true, Mode = "colour", H = 222, S = 72, V = 80 });
+                    await Task.Delay(700);
+                    if (ContentFrame.Content is Page { Content: ScrollViewer { Content: Panel colourBody } })
+                    {
+                        colourBody.Background = Root.Background;
+                        await SaveAsync(colourBody, Path.Combine(dir, $"light-colour-{theme}.png"));
+                        colourBody.Background = null;
+                    }
+                    App.Instance.Session.Preview(real);
+                    await Task.Delay(300);
+                }
+                // Music sync as if running (drawn only: nothing is started).
+                if (tag == "music" && ContentFrame.Content is MusicPage musicPage)
+                {
+                    musicPage.PreviewRunning = true;
+                    await Task.Delay(900);
+                    if (musicPage.Content is ScrollViewer { Content: Panel musicBody })
+                    {
+                        musicBody.Background = Root.Background;
+                        await SaveAsync(musicBody, Path.Combine(dir, $"music-running-{theme}.png"));
+                        musicBody.Background = null;
+                    }
+                    musicPage.PreviewRunning = false;
+                }
                 // The second air conditioner too, when there is one (shows other louvre and switch states).
                 if (tag == "ac" && App.Instance!.Acs.Units.Count > 1 && ContentFrame.Content is AcPage acPage)
                 {

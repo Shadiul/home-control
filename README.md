@@ -2,7 +2,7 @@
 
 Control your Tuya Wi-Fi light and your Gree air conditioners from this PC.
 
-**Home Control 2.2** (called LED Control before 2.2) is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10),
+**Home Control 2.4** (called LED Control before 2.2) is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10),
 the same UI framework Windows 11's own apps use. It's in the Start menu. Python isn't needed any more:
 the light's encrypted local protocol (Tuya 3.5), the Tuya Cloud API, the Gree air conditioner protocol and music
 analysis are all in C#.
@@ -15,29 +15,35 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
   AC blows air while any unit runs. It also shows the room temperatures and how many devices are connected.
   - **Scenes** set everything at once: **Cool down** (ACs to 24 °C with Turbo), **Movie** (light dim blue,
     running ACs on Quiet), **Sleep** (night light, ACs on Sleep at 27 °C) and **All off**.
-  - **Device cards:** each one is a dark scene lit by its device. The light card has a bulb in the light's colour,
-    with a ring dial for brightness. Each air conditioner card shows the unit, with air flowing while it runs and
-    a ring dial for the target temperature. The music sync card has a speaker and a ring of bars that follow
-    the music, around a play/stop button. Drag a ring or use − and +; **Open ›** goes to the device's page.
-- Sliders everywhere are thick, with a tall pill-shaped handle.
+  - **Device cards:** each one is a dark scene lit by its device. The light card has a bulb in the light's colour
+    and two fill sliders: **Brightness** (amber) and **Warmth** (on a warm-to-cool track, which also tints the
+    bulb, the card and the house window). Each air conditioner card shows the unit, with air flowing while it
+    runs and a ring dial for the target temperature. The music sync card has a speaker and a play/stop button
+    on a soft violet glow that breathes while sync runs. **Open ›** goes to the device's page.
+- **Colour swatches** look the same everywhere: a soft rounded tile holding a round swatch; the picked one gets a
+  ring and a glow in its own colour.
+- **Fill sliders** (Home, Music sync and the quick panel): the whole rounded pill is the slider. Drag or click
+  anywhere on it, or use the arrow keys.
 - **Light:** the light's name and connection under the title, and the power switch on the right.
   - **Preview:** a realistic bulb that glows in the light's colour, brighter and wider the higher the brightness.
-    Click it to turn the light on or off.
-  - **Controls**, in one card: White or Colour, brightness, and either warmth (on a warm-to-cool track) or
-    colour swatches with a **Custom…** colour picker.
+    Click it to turn the light on or off. It's as tall as the controls beside it.
+  - **Controls**, in one card lit by the light's colour: **White** and **Colour** tiles, a thick brightness slider
+    that fills in the light's colour, then either warmth (a warm-to-cool track) with five presets (Candle, Warm,
+    Neutral, Daylight, Cool), or 12 colour swatches and a **Custom** rainbow swatch that opens a colour picker.
   - **Scenes:** illustrated cards (Bright, Reading, Relax, Night, Movie, Party), each a small room lit the way the
     scene lights it. The one the light currently matches is outlined.
 
   Changes made elsewhere, such as in the Smart Life phone app, show up straight away: the light reports them.
-- **Music sync:** the light reacts to whatever the PC plays. **Start** / **Stop** is beside the title.
-  - **Now:** a live spectrum, coloured by the style, and a dot showing the light's colour at that moment.
-  - **Style**, as four cards:
+- **Music sync:** the light reacts to whatever the PC plays. **Start** (a violet button) / **Stop** is beside the title.
+  - **Stage:** one glowing orb in the style's colour, breathing while sync runs, with play/stop in the middle,
+    what it's listening to, and a dot showing the light's colour at that moment.
+  - **Options:** sensitivity, update speed (10 to 25 a second), what to listen to (system audio or any input,
+    such as Stereo Mix) and the Pulse colour (picking one switches to Pulse).
+  - **Style**, as four illustrated cards:
     - **Pulse:** one colour breathing with the volume.
     - **Spectrum:** bass shows red, mids green, treble blue.
     - **Beat:** a new colour and a flash on every beat.
     - **Party:** colours spin with the energy.
-  - **Options:** sensitivity, what to listen to (system audio or any input, such as Stereo Mix), update speed
-    (10 to 25 a second) and the Pulse colour.
   - It only works over the home network. **Stop** puts the light back how it was; changing the light on the
     Light page also stops it.
 - **Climate:** one tab per air conditioner, with **Rename** beside the tabs.
@@ -45,7 +51,8 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     the arrow keys. The room temperature and the power switch are underneath.
   - **Mode:** a card per mode (Auto, Cool, Dry, Fan, Heat), each with its own colours and a short description.
   - **Fan and airflow:** three panels, each a picture with its own arc slider:
-    - **Fan speed:** a fan whose rotor spins faster, and whose streams of air grow, at each step from Low to High.
+    - **Fan speed:** a round fan inside a 270° ring (Low at the bottom left, round the top, to High). The rotor
+      spins faster, and rings of air circle it, more and faster, at each step. It stands still while the unit is off.
     - **Up and down:** the unit seen from the side on its wall, with the louvre flap and the air beam, from
       straight ahead to straight down.
     - **Left and right:** the unit seen from the front, from far left to far right.
@@ -53,8 +60,9 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
     Drag a handle or click a position. **Auto** lets the unit choose; **Swing** sweeps the whole range, and turning
     it off goes back to the last direction you picked. The text under each title says what's set ("Fixed: halfway
     down", "Swinging", "Automatic: the unit chooses").
-  - **More options:** tiles for Turbo, Quiet, Sleep, Display light, Health (ionizer) and X-Fan, each in its own
-    colour. Point at or tap the ⓘ to see what an option does. Turbo and Quiet switch each other off.
+  - **More options:** Windows Settings-style cards with a switch each: Turbo, Quiet, Sleep, Display light, Health
+    (ionizer) and X-Fan. Point at or tap the ⓘ to see what an option does. Turbo and Quiet switch each other
+    off, and Turbo only works in Cool and Heat.
 
   Changes show at once and are confirmed by reading the unit back; the page refreshes every 20 seconds, so
   changes from the remote show up too.
@@ -68,11 +76,13 @@ Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and S
   - **App:** theme, "Keep running next to the clock" and "Start with Windows".
   - **About:** the version, and a button to open the settings folder.
 - **Notification area icon:** click to open the **quick panel** just above the taskbar. It has a tab per device
-  (the light, each air conditioner, music sync), each with a picture of the device lit by its state and a big
-  power button:
-  - **Light:** brightness, and colour chips (Warm, Cool, Red, Green, Blue, Purple).
-  - **Air conditioners:** the target temperature with − and +, fan speed, and mode chips plus Fan auto.
-  - **Music sync:** sensitivity and the four styles; the ring round the speaker follows the music.
+  (the light, each air conditioner, music sync), each with a picture of the device lit by its state, its name
+  and status, and a big power button. Below it, on a soft wash of the device's colour:
+  - **Light:** brightness and warmth sliders, 8 colours and 6 scenes.
+  - **Air conditioners:** the target temperature with big − and +, the fan slider with **Auto**, mode tiles in
+    their own colours, and Turbo, Quiet, Sleep, Swing up/down, Swing left/right and Display.
+  - **Music sync:** sensitivity, the four styles, update speed, the Pulse colour and what to listen to. The
+    speaker glows while sync runs.
 
   The footer says whether every device is connected and has buttons to open the app or Settings. The panel
   closes when you click anywhere else. Right-click the icon for a menu: on/off, scenes, music sync, a menu per
