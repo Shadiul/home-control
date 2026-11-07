@@ -58,6 +58,15 @@ public sealed partial class HomePage : Page
     readonly SpeakerArt speaker = new();
     readonly MusicGlow musicGlow = new() { HorizontalAlignment = HorizontalAlignment.Center };
 
+    // PC lighting: the case lit in its colour, a brightness slider and colour swatches.
+    static readonly (string Name, uint Rgb)[] PcColours =
+        [("Warm white", 0xFFC47E), ("Cool white", 0xEEF4FF), ("Red", 0xE8453C), ("Green", 0x3DAA67), ("Blue", 0x3E6FE0), ("Purple", 0xA85BD8)];
+    readonly DeviceCard pcCard = new();
+    readonly PcCaseArt pcArt = new();
+    readonly FillSlider pcSlider = new("PC brightness", showText: false, height: 44) { Minimum = 1, Maximum = 100, LargeChange = 10 };
+    readonly TextBlock pcValue = PillText();
+    readonly List<(SwatchTile Tile, int Rgb)> pcSwatches = [];
+
     public HomePage()
     {
         InitializeComponent();
@@ -66,6 +75,7 @@ public sealed partial class HomePage : Page
 
         BuildLightCard();
         BuildMusicCard();
+        BuildPcCard();
         RebuildDevices();
 
         Loaded += (_, _) =>
@@ -75,6 +85,7 @@ public sealed partial class HomePage : Page
             Session.MusicFrame += OnMusicFrame;
             Host.Acs.Changed += OnAcsChanged;
             Host.Acs.ListChanged += RebuildDevices;
+            Host.PcChanged += UpdatePc;
             RefreshAll();
         };
         Unloaded += (_, _) =>
@@ -84,6 +95,7 @@ public sealed partial class HomePage : Page
             Session.MusicFrame -= OnMusicFrame;
             Host.Acs.Changed -= OnAcsChanged;
             Host.Acs.ListChanged -= RebuildDevices;
+            Host.PcChanged -= UpdatePc;
         };
     }
 
@@ -93,6 +105,7 @@ public sealed partial class HomePage : Page
         UpdateLight();
         UpdateAcs();
         UpdateMusic();
+        UpdatePc();
         UpdateSceneHint();
     }
 
@@ -349,7 +362,93 @@ public sealed partial class HomePage : Page
         foreach (var unit in Host.Acs.Units) acCards.Add(BuildAcCard(unit));
         foreach (var a in acCards) DeviceGrid.Children.Add(a.Card);
         DeviceGrid.Children.Add(musicCard);
+        DeviceGrid.Children.Add(pcCard);
         UpdateAcs();
+    }
+
+    // ------------------------------------------------------------ PC lighting
+
+    static PcLightingPrefs PcPrefs => Host.Config.Pc;
+
+    void BuildPcCard()
+    {
+        pcCard.Title = "PC lighting";
+        pcCard.Icon = Glyph("");
+        pcCard.Art = new Viewbox { Height = 120, Child = pcArt };
+        pcSlider.ValueChanged += v =>
+        {
+            PcPrefs.Brightness = (int)v;
+            PcPrefs.On = true;
+            Host.ApplyPcLighting();
+        };
+        var grid = new AdaptiveGrid { MinItemWidth = 1, MaxColumns = PcColours.Length, ColumnSpacing = 6, RowSpacing = 6 };
+        AutomationProperties.SetName(grid, "PC lighting colour");
+        foreach (var (name, rgb) in PcColours)
+        {
+            var tile = new SwatchTile(name, Paint.Hex(rgb));
+            tile.Click += (_, _) =>
+            {
+                PcPrefs.Rgb = (int)rgb;
+                PcPrefs.On = true;
+                PcPrefs.FollowRoom = false;
+                Host.ApplyPcLighting();
+            };
+            pcSwatches.Add((tile, (int)rgb));
+            grid.Children.Add(tile);
+        }
+        var colourTitle = new TextBlock { Text = "Colour", FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Paint.Brush(0xFFFFFF) };
+        pcCard.Body = new StackPanel
+        {
+            MinHeight = 196, Spacing = 12, VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                SliderBlock(pcSlider, pcValue, "Brightness", SunIcon, "Dim", "Bright"),
+                new StackPanel { Spacing = 8, Children = { colourTitle, grid } },
+            },
+        };
+        pcCard.PowerToggled += on =>
+        {
+            if (on == PcPrefs.On) return;
+            PcPrefs.On = on;
+            Host.ApplyPcLighting();
+        };
+        pcCard.OpenClicked += () => Host.Window.ShowPage("pc");
+    }
+
+    void UpdatePc()
+    {
+        var st = Host.PcState();
+        var pc = Host.Pc;
+        bool enabled = PcPrefs.Enabled, on = enabled && st.On;
+        var colour = Color.FromArgb(255, st.R, st.G, st.B);
+        pcCard.Status = !enabled ? "Not controlled"
+            : pc.StatusKind is "error" or "conflict" ? pc.StatusText
+            : !on ? "Off"
+            : PcPrefs.FollowMusic && Session.MusicRunning ? "Following the music"
+            : PcPrefs.FollowRoom ? "Matching the room light"
+            : $"{st.Brightness}%";
+        pcCard.IsOn = on;
+        pcCard.PowerEnabled = enabled;
+        pcArt.Show(on, colour, st.Brightness / 100.0);
+        AutomationProperties.SetName(pcArt, on ? $"PC lit at {st.Brightness}%" : "PC lights off");
+
+        var p = Palette.For(true);
+        if (!pcSlider.IsDragging) pcSlider.Value = st.Brightness;
+        pcSlider.Text = pcValue.Text = $"{st.Brightness}%";
+        pcSlider.SetColours(p, Paint.Brush(0xFFFFFF, 0x1A),
+            on ? FillSlider.FillOf(colour, 0x55 / 255.0, 0xCC / 255.0) : Paint.Brush(0xFFFFFF, 0x38), Paint.Hex(0xFFFFFF), on ? colour : null);
+        pcSlider.IsEnabled = enabled;
+        foreach (var (tile, rgb) in pcSwatches)
+        {
+            tile.Show(p, enabled && !PcPrefs.FollowRoom && PcPrefs.Rgb == rgb, Paint.Hex(0xFFFFFF, 0x2E));
+            tile.IsEnabled = enabled;
+        }
+        int ok = pc.Devices.Count(d => d.Ok);
+        pcCard.SetChips(pc.Devices.Count == 0 ? [] : [$"{ok} of {pc.Devices.Count} controllers"]);
+
+        if (on)
+            pcCard.SetScene(Paint.Mix(Paint.Hex(0x26262B), colour, 0.08), Paint.Hex(0x18181B), Paint.Hex(0x111113), Paint.WithAlpha(colour, 0.3 + 0.2 * st.Brightness / 100.0));
+        else pcCard.SetScene(Paint.Hex(0x3A3B3F), Paint.Hex(0x26272B), Paint.Hex(0x1C1D20), null);
     }
 
     // ------------------------------------------------------------ light
