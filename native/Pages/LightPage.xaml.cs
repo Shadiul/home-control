@@ -48,7 +48,12 @@ public sealed partial class LightPage : Page
     };
 
     readonly BigBulb bulb = new();
-    readonly List<(Button Button, Border Ring, int H, int S)> swatchButtons = [];
+    readonly List<(SwatchTile Tile, int H, int S)> swatchButtons = [];
+    readonly ColorPicker picker = new()
+    {
+        ColorSpectrumShape = ColorSpectrumShape.Box, IsAlphaEnabled = false, IsColorSliderVisible = false,
+        IsColorChannelTextInputVisible = false, IsHexInputVisible = true,
+    };
     readonly List<(Button Button, Border Ring, Scene Scene)> sceneButtons = [];
     readonly SolidColorBrush warmthThumb = new(Paint.Hex(0xF2A541));
     bool syncing;
@@ -63,6 +68,7 @@ public sealed partial class LightPage : Page
         BulbBox.Child = bulb;
         StyleWarmthSlider();
         foreach (var (name, rgb) in SwatchColours) SwatchGrid.Children.Add(SwatchButton(name, rgb));
+        SwatchGrid.Children.Add(CustomButton());
         foreach (var scene in LightSession.Scenes) SceneGrid.Children.Add(SceneButton(scene));
         syncing = false;
 
@@ -95,29 +101,31 @@ public sealed partial class LightPage : Page
     {
         var c = Paint.Hex(rgb);
         var (h, s, _) = ColorMath.RgbToHsv(c.R, c.G, c.B);
-        var ring = new Border
-        {
-            CornerRadius = new CornerRadius(4), BorderThickness = new Thickness(2), Padding = new Thickness(3),
-            Child = new Border { CornerRadius = new CornerRadius(2), Background = new SolidColorBrush(c) },
-        };
-        var button = new Button
-        {
-            Style = (Style)Application.Current.Resources["BareButton"], Height = 40, CornerRadius = new CornerRadius(4),
-            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            VerticalContentAlignment = VerticalAlignment.Stretch, Content = ring,
-        };
-        AutomationProperties.SetName(button, name);
-        ToolTipService.SetToolTip(button, name);
+        var tile = new SwatchTile(name, c);
         int hue = (int)Math.Round(h) % 360, sat = (int)Math.Round(s * 100);
-        button.Click += (_, _) =>
+        tile.Click += (_, _) =>
         {
             lastH = hue;
             lastS = sat;
             Session.Submit(LightCommand.Colour(hue, sat, CurrentLevel()));
         };
-        swatchButtons.Add((button, ring, hue, sat));
-        return button;
+        swatchButtons.Add((tile, hue, sat));
+        return tile;
     }
+
+    /// <summary>Custom: the same tile with a rainbow swatch, opening a colour picker.</summary>
+    UIElement CustomButton()
+    {
+        var tile = new SwatchTile("Custom colour", Paint.Hex(0x808080), SwatchTile.RainbowFace());
+        var flyout = new Flyout { Content = picker };
+        flyout.Opening += PickerFlyout_Opening;
+        tile.Flyout = flyout;
+        picker.ColorChanged += Picker_ColorChanged;
+        customTile = tile;
+        return tile;
+    }
+
+    SwatchTile? customTile;
 
     UIElement SceneButton(Scene scene)
     {
@@ -262,12 +270,14 @@ public sealed partial class LightPage : Page
             WarmthText.Text = temp < 35 ? "Warm" : temp < 70 ? "Neutral" : "Cool";
             warmthThumb.Color = Paint.Mix(Paint.Hex(0xF2A541), Paint.Hex(0x9DBFF5), temp / 100.0);
 
-            foreach (var (button, ring, h, s) in swatchButtons)
+            foreach (var (tile, h, s) in swatchButtons)
             {
                 bool picked = colour && Math.Min(Math.Abs(h - st!.H), 360 - Math.Abs(h - st.H)) <= 4 && Math.Abs(s - st.S) <= 6;
-                ring.BorderBrush = Palette.B(picked ? p.Accent : Paint.Hex(0, 0));
-                AutomationProperties.SetItemStatus(button, picked ? "Selected" : "");
+                tile.Show(p, picked);
+                tile.IsEnabled = known;
             }
+            customTile?.Show(p, false);
+            if (customTile != null) customTile.IsEnabled = known;
 
             // Scenes: the one the light matches gets a ring.
             foreach (var (button, ring, scene) in sceneButtons)
@@ -319,10 +329,10 @@ public sealed partial class LightPage : Page
         if (!syncing) Session.Submit(LightCommand.White(CurrentLevel(), (int)TempSlider.Value));
     }
 
-    void PickerFlyout_Opening(object sender, object e)
+    void PickerFlyout_Opening(object? sender, object e)
     {
         syncing = true;
-        Picker.Color = ToColor(ColorMath.HsvToRgb(lastH, lastS / 100.0, 1));
+        picker.Color = ToColor(ColorMath.HsvToRgb(lastH, lastS / 100.0, 1));
         syncing = false;
     }
 

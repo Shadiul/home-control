@@ -129,6 +129,13 @@ public sealed class LightSession
         if (!pumping) _ = PumpAsync();
     }
 
+    /// <summary>Shows a state without sending it to the light (for the design screenshots). null puts back the real one.</summary>
+    internal void Preview(LightState? state)
+    {
+        Shown = state ?? Confirmed;
+        Changed?.Invoke();
+    }
+
     public void TogglePower() => Submit(LightCommand.Power(!(Shown?.On ?? false)));
 
     async Task PumpAsync()

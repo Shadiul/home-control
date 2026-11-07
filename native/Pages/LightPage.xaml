@@ -105,19 +105,8 @@
                             </StackPanel>
 
                             <StackPanel x:Name="ColourPanel" Padding="16,12,16,16" Spacing="10" Visibility="Collapsed">
-                                <Grid>
-                                    <TextBlock Text="Colour" FontSize="14" VerticalAlignment="Center" />
-                                    <Button Content="Custom…" HorizontalAlignment="Right" Height="32">
-                                        <Button.Flyout>
-                                            <Flyout Opening="PickerFlyout_Opening">
-                                                <ColorPicker x:Name="Picker" ColorSpectrumShape="Box" IsAlphaEnabled="False" IsColorSliderVisible="False"
-                                                             IsColorChannelTextInputVisible="False" IsHexInputVisible="True"
-                                                             ColorChanged="Picker_ColorChanged" />
-                                            </Flyout>
-                                        </Button.Flyout>
-                                    </Button>
-                                </Grid>
-                                <c:AdaptiveGrid x:Name="SwatchGrid" MinItemWidth="40" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Colours" />
+                                <TextBlock Text="Colour" FontSize="14" />
+                                <c:AdaptiveGrid x:Name="SwatchGrid" MinItemWidth="36" ColumnSpacing="6" RowSpacing="6" AutomationProperties.Name="Colours" />
                             </StackPanel>
                         </StackPanel>
                     </Border>

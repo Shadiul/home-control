@@ -313,23 +313,9 @@ public sealed partial class QuickPanel : Window
     void AddSwatchChip(string name, uint rgb, int temp)
     {
         var c = Paint.Hex(rgb);
-        var b = new Button
-        {
-            Height = 52, CornerRadius = new CornerRadius(10), Padding = new Thickness(0), HorizontalAlignment = HorizontalAlignment.Stretch,
-            Content = new StackPanel
-            {
-                Spacing = 3, HorizontalAlignment = HorizontalAlignment.Center,
-                Children =
-                {
-                    new Ellipse { Width = 26, Height = 26, Fill = new SolidColorBrush(c), Stroke = Paint.Brush(0, 0x1A), StrokeThickness = 1 },
-                    new TextBlock { Text = name, FontSize = 11, HorizontalAlignment = HorizontalAlignment.Center },
-                },
-            },
-        };
+        var b = new SwatchTile(name, c);
         var (h, s, _) = ColorMath.RgbToHsv(c.R, c.G, c.B);
         int hue = (int)Math.Round(h) % 360, sat = (int)Math.Round(s * 100);
-        AutomationProperties.SetName(b, name);
-        ToolTipService.SetToolTip(b, name);
         b.Click += (_, _) =>
         {
             int level = (int)MainSlider.Value;
@@ -379,12 +365,8 @@ public sealed partial class QuickPanel : Window
                 bool sel = selected();
                 if (button is ToggleButton tb) tb.IsChecked = sel;
                 if (icon != null) Draw.Tint(icon, sel ? p.OnAccent : p.Text);
-                if (swatch)
-                {
-                    button.BorderBrush = sel ? Palette.B(p.Accent) : null;
-                    button.BorderThickness = new Thickness(sel ? 2 : 1);
-                }
-                AutomationProperties.SetItemStatus(button, sel ? "Selected" : "");
+                if (button is SwatchTile tile) tile.Show(p, sel, p.Dark ? Paint.Hex(0x323232) : Paint.Hex(0xFFFFFF));
+                else AutomationProperties.SetItemStatus(button, sel ? "Selected" : "");
             }
 
             // Footer

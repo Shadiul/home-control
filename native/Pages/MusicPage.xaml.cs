@@ -25,12 +25,17 @@ public sealed partial class MusicPage : Page
         ("beat", "Beat", "A new colour and a flash on every beat"),
         ("party", "Party", "Colours spin faster as the music gets louder"),
     ];
-    static readonly int[] PulseHues = [0, 25, 50, 130, 190, 230, 280, 320];
+    // Pulse colours: the hue sent to the light, and the colour shown (the shared swatch colours).
+    static readonly (int Hue, string Name, uint Rgb)[] PulseColourList =
+    [
+        (0, "Red", 0xE8453C), (25, "Orange", 0xF2802E), (50, "Yellow", 0xF2D33C), (130, "Green", 0x3DAA67),
+        (190, "Teal", 0x2BB5A8), (230, "Blue", 0x3E6FE0), (280, "Purple", 0xA85BD8), (320, "Pink", 0xE05B9E),
+    ];
 
     readonly Rectangle[] bars = new Rectangle[Analyzer.BarCount];
     readonly List<(Border Card, RadioButton Radio, string Key)> styleCards = [];
     readonly List<(ToggleButton Button, int Fps)> speedButtons = [];
-    readonly List<Button> pulseButtons = [];
+    readonly List<(SwatchTile Tile, int Hue)> pulseButtons = [];
     List<AudioCapture.Source> sources = [];
     bool syncing, visible;
 
@@ -94,24 +99,14 @@ public sealed partial class MusicPage : Page
             speedButtons.Add((b, fps));
         }
 
-        foreach (int hue in PulseHues)
+        foreach (var (hue, name, rgb) in PulseColourList)
         {
-            var b = new Button
-            {
-                Style = (Style)Application.Current.Resources["BareButton"],
-                Tag = hue,
-                CornerRadius = new CornerRadius(16),
-                Content = new Border
-                {
-                    Width = 32, Height = 32, CornerRadius = new CornerRadius(16), BorderThickness = new Thickness(2),
-                    Child = new Ellipse { Width = 22, Height = 22, Fill = new SolidColorBrush(LightPage.ToColor(ColorMath.HsvToRgb(hue, 1, 1))) },
-                },
-            };
-            AutomationProperties.SetName(b, ColorMath.HueName(hue, 100));
-            ToolTipService.SetToolTip(b, ColorMath.HueName(hue, 100));
-            b.Click += Pulse_Click;
-            PulseColours.Children.Add(b);
-            pulseButtons.Add(b);
+            var tile = new SwatchTile("Pulse in " + name.ToLowerInvariant(), Paint.Hex(rgb));
+            tile.Click += (_, _) => PickPulse(hue);
+            Grid.SetColumn(tile, pulseButtons.Count);
+            PulseColours.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            PulseColours.Children.Add(tile);
+            pulseButtons.Add((tile, hue));
         }
         MusicError.Closed += (_, _) => MusicError.Visibility = Visibility.Collapsed;
 
@@ -154,8 +149,7 @@ public sealed partial class MusicPage : Page
         SensSlider.Value = m.Sensitivity;
         SensText.Text = m.Sensitivity.ToString();
         foreach (var (b, fps) in speedButtons) b.IsChecked = fps == m.Fps;
-        foreach (var b in pulseButtons)
-            ((Border)b.Content).BorderBrush = Palette.B((int)b.Tag == m.Hue ? p.Text : Paint.Hex(0, 0));
+        foreach (var (tile, hue) in pulseButtons) tile.Show(p, hue == m.Hue);
         PulseRow.Opacity = m.Style == "pulse" ? 1 : 0.55;
         syncing = false;
     }
@@ -194,9 +188,9 @@ public sealed partial class MusicPage : Page
         SavePrefs();
     }
 
-    void Pulse_Click(object sender, RoutedEventArgs e)
+    void PickPulse(int hue)
     {
-        Prefs.Hue = (int)((Button)sender).Tag;
+        Prefs.Hue = hue;
         Prefs.Style = "pulse"; // picking a pulse colour implies the Pulse style
         SavePrefs();
         LoadPrefs();

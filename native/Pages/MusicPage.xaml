@@ -94,7 +94,7 @@
                                     <TextBlock Text="Pulse colour" FontSize="14" />
                                     <TextBlock Text="The colour the Pulse style breathes in" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 </StackPanel>
-                                <StackPanel x:Name="PulseColours" Orientation="Horizontal" Spacing="6" AutomationProperties.Name="Pulse colour" />
+                                <Grid x:Name="PulseColours" Width="324" ColumnSpacing="6" AutomationProperties.Name="Pulse colour" />
                                 </c:WrapPanel>
                             </Border>
                         </StackPanel>
