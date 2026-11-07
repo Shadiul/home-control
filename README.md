@@ -9,6 +9,17 @@ analysis are all in C#.
 
 ## Using it
 
+Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and Settings (the gear on the right).
+
+- **Home:** a banner with the time of day and a drawing of the house: its window glows with the light, and the
+  AC blows air while any unit runs. It also shows the room temperatures and how many devices are connected.
+  - **Scenes** set everything at once: **Cool down** (ACs to 24 °C with Turbo), **Movie** (light dim blue,
+    running ACs on Quiet), **Sleep** (night light, ACs on Sleep at 27 °C) and **All off**.
+  - **Device cards:** each one is a dark scene lit by its device. The light card has a bulb in the light's colour,
+    with a ring dial for brightness. Each air conditioner card shows the unit, with air flowing while it runs and
+    a ring dial for the target temperature. The music sync card has a speaker and a ring of bars that follow
+    the music, around a play/stop button. Drag a ring or use − and +; **Open ›** goes to the device's page.
+- Sliders everywhere are thick, with a tall pill-shaped handle.
 - **Light:** power switch, live preview (click it to toggle), White and Colour modes, brightness, warmth,
   colour swatches, custom colour picker, and scenes (Bright, Reading, Relax, Night, Movie, Party).
   Changes made elsewhere, such as in the Smart Life phone app, show up straight away: the light reports them.

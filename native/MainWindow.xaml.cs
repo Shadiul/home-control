@@ -49,7 +49,7 @@ public sealed partial class MainWindow : Window
             MusicBadge.Visibility = App.Instance.Session.MusicRunning ? Visibility.Visible : Visibility.Collapsed;
 
         ApplyTheme(App.Instance.Config.Theme);
-        Nav.SelectedItem = LightNav;
+        Nav.SelectedItem = HomeNav;
     }
 
     public bool IsForeground => GetForegroundWindow() == hwnd;
@@ -96,9 +96,10 @@ public sealed partial class MainWindow : Window
         Type page = args.IsSettingsSelected ? typeof(SettingsPage)
                   : ((args.SelectedItem as NavigationViewItem)?.Tag as string) switch
                   {
+                      "light" => typeof(LightPage),
                       "music" => typeof(MusicPage),
                       "ac" => typeof(AcPage),
-                      _ => typeof(LightPage),
+                      _ => typeof(HomePage),
                   };
         if (ContentFrame.CurrentSourcePageType != page)
             ContentFrame.Navigate(page, null, args.RecommendedNavigationTransitionInfo ?? new EntranceNavigationTransitionInfo());
@@ -109,9 +110,10 @@ public sealed partial class MainWindow : Window
         Nav.SelectedItem = tag switch
         {
             "settings" => Nav.SettingsItem,
+            "light" => LightNav,
             "music" => MusicNav,
             "ac" => AcNav,
-            _ => LightNav,
+            _ => HomeNav,
         };
     }
 
@@ -138,7 +140,7 @@ public sealed partial class MainWindow : Window
             // Mica isn't captured by RenderTargetBitmap: paint its typical base colour instead.
             Root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(
                 theme == "dark" ? Color.FromArgb(255, 0x20, 0x20, 0x20) : Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
-            foreach (var tag in new[] { "light", "music", "ac", "settings" })
+            foreach (var tag in new[] { "home", "light", "music", "ac", "settings" })
             {
                 ShowPage(tag);
                 await Task.Delay(900);
@@ -174,6 +176,15 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32((int)(600 * WinIntegration.GetDpiForWindow(hwnd) / 96.0), AppWindow.Size.Height));
         ApplyTheme("light");
         Root.Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
+        ShowPage("home");
+        await Task.Delay(1200);
+        await SaveAsync(Root, Path.Combine(dir, "home-narrow.png"));
+        if (ContentFrame.Content is Page { Content: ScrollViewer { Content: Panel narrowBody } })
+        {
+            narrowBody.Background = Root.Background;
+            await SaveAsync(narrowBody, Path.Combine(dir, "home-narrow-full.png"));
+            narrowBody.Background = null;
+        }
         ShowPage("light");
         await Task.Delay(1200);
         await SaveAsync(Root, Path.Combine(dir, "light-narrow.png"));
