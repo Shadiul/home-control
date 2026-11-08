@@ -23,7 +23,7 @@
     <!-- Program.cs has its own Main (single instance, command-line modes). -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 
-    <Version>2.4.0</Version>
+    <Version>2.4.1</Version>
     <Product>Home Control</Product>
     <AssemblyTitle>Home Control</AssemblyTitle>
     <Company>Personal</Company>
