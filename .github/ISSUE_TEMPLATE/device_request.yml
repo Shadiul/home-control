@@ -1,0 +1,46 @@
+name: Support my device
+description: Ask for a light, air conditioner or other device to work with Home Control
+labels: [device]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Support depends on someone with the device testing it, ideally you. The more of this you can fill in,
+        the more likely it is to happen.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Brand, model and type (light, air conditioner, plug…).
+      placeholder: "Philips Hue White and Colour E27"
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Phone app you use with it
+      placeholder: "Smart Life, Gree+, Hue, Tapo…"
+    validations:
+      required: true
+  - type: dropdown
+    id: local
+    attributes:
+      label: Does it work without internet?
+      description: Turn off the router's internet (or the phone's mobile data on the same Wi-Fi) and try the phone app.
+      options:
+        - "Yes, the phone app still controls it"
+        - "No"
+        - "Don't know"
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: >-
+        Links to open-source projects that already support it, firmware version, and whether you can test changes.
+        Please don't post device keys or passwords.
+  - type: checkboxes
+    id: test
+    attributes:
+      label: Testing
+      options:
+        - label: I can test a build with this device
