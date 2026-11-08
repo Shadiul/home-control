@@ -35,7 +35,7 @@
         <Grid x:Name="AppTitleBar" Padding="16,0,0,0">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <Image Source="ms-appx:///Assets/icon.png" Width="18" Height="18" />
-                <TextBlock Text="Home Control" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center"
+                <TextBlock x:Name="TitleText" Text="Home Control" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
         </Grid>

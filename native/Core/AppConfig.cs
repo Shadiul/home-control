@@ -10,6 +10,9 @@ public static class AppInfo
     /// <summary>The app's name before version 2.2.</summary>
     public const string OldName = "LED Control";
 
+    /// <summary>Running with <c>--demo</c>: simulated devices, and the real settings are left alone.</summary>
+    public static bool Demo { get; set; }
+
     public static string Version
     {
         get
@@ -118,6 +121,9 @@ public sealed class AppConfig
     /// <summary>The settings came from the file (false on a first run, before anything is saved).</summary>
     public bool LoadedFromFile { get; private set; }
 
+    /// <summary>Demo mode's sample settings (see <see cref="Demo"/>): kept in memory, never saved.</summary>
+    public bool IsDemo { get; init; }
+
     public static AppConfig Load()
     {
         var cfg = new AppConfig();
@@ -189,6 +195,7 @@ public sealed class AppConfig
 
     public void Save()
     {
+        if (IsDemo) return; // demo changes last until the app closes
         // Never replace a settings file this copy couldn't read: it would lose the keys in it.
         if (LoadError != null)
             throw new InvalidOperationException(

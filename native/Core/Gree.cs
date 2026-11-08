@@ -129,7 +129,7 @@ public static class GreeProtocol
 public sealed record GreeFound(string Ip, string Mac, string Name, string Firmware);
 
 /// <summary>Talks to one paired air conditioner. Thread-safe for one caller at a time.</summary>
-public sealed class GreeClient(AcConfig ac)
+public sealed class GreeClient(AcConfig ac) : IAcClient
 {
     /// <summary>The unit's key changed (it was re-paired): save the config.</summary>
     public event Action? KeyChanged;

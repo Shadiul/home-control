@@ -25,7 +25,14 @@ public sealed class LightController : IDisposable
     /// <summary>Live state reported by the light itself (raised on a background thread).</summary>
     public event Action<LightState>? Reported;
 
-    public LightController(AppConfig config) => Config = config;
+    /// <summary>Demo mode's simulated light, used instead of the network.</summary>
+    readonly DemoLight? demo;
+
+    public LightController(AppConfig config)
+    {
+        Config = config;
+        if (config.IsDemo) demo = new DemoLight();
+    }
 
     public bool IsConfigured =>
         Config.Device.Key.Length > 0 || (Config.Cloud.ApiKey.Length > 0 && Config.Cloud.ApiSecret.Length > 0);
@@ -133,6 +140,11 @@ public sealed class LightController : IDisposable
 
     public async Task<LightState> GetStateAsync(CancellationToken ct = default)
     {
+        if (demo != null)
+        {
+            await Task.Delay(100, ct);
+            return demo.State() with { Via = "local" };
+        }
         await gate.WaitAsync(ct);
         try
         {
@@ -163,6 +175,12 @@ public sealed class LightController : IDisposable
     /// <summary>Runs a command; returns which route was used ("local" or "cloud").</summary>
     public async Task<string> ExecuteAsync(LightCommand cmd, CancellationToken ct = default)
     {
+        if (demo != null)
+        {
+            await Task.Delay(100, ct);
+            demo.Apply(LightState.ToLocalDps(cmd));
+            return "local";
+        }
         await gate.WaitAsync(ct);
         try
         {
@@ -193,6 +211,11 @@ public sealed class LightController : IDisposable
     /// <summary>Opens (or reuses) the home-network link and switches the light to music mode.</summary>
     public async Task MusicBeginAsync(CancellationToken ct = default)
     {
+        if (demo != null)
+        {
+            demo.Apply(new Dictionary<string, object> { ["20"] = true, ["21"] = "music" });
+            return;
+        }
         if (string.IsNullOrWhiteSpace(Config.Device.Key))
             throw new LedException("Music sync needs the light's local key (see Settings).");
         await gate.WaitAsync(ct);
@@ -211,6 +234,7 @@ public sealed class LightController : IDisposable
     /// <summary>Fire-and-forget music colour (h 0-360, s and v 0-1). Throws if the link dropped.</summary>
     public void MusicSend(double h, double s, double v)
     {
+        if (demo != null) return; // the app's own glow shows the colours
         var l = link;
         if (l is not { IsOpen: true }) throw new LedException("Lost the connection to the light.");
         // DP 28: transition (0 = jump) + hhhhssssvvvv + white brightness/temp (unused) as 0000 0000.
@@ -222,6 +246,7 @@ public sealed class LightController : IDisposable
 
     public async Task<string> FetchKeyFromCloudAsync(CancellationToken ct = default)
     {
+        if (demo != null) throw new LedException("This is the demo: there's no Tuya Cloud account to ask.");
         var info = await new TuyaCloud(Config.Cloud).DeviceInfoAsync(Config.Device.Id, ct);
         if (string.IsNullOrEmpty(info.LocalKey))
             throw new LedException("Tuya Cloud didn't return a local key for this light.");
@@ -239,6 +264,12 @@ public sealed class LightController : IDisposable
     {
         var d = Config.Device;
         var steps = new List<CheckStep>();
+        if (demo != null)
+        {
+            await Task.Delay(400, ct);
+            steps.Add(new("Demo", true, "The light is simulated, so nothing is sent over the network."));
+            return steps;
+        }
 
         var found = await Discovery.FindAsync(d.Id, 7000, ct);
         if (found != null && found.Ip != d.Ip)
