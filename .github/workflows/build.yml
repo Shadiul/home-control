@@ -1,0 +1,74 @@
+# Builds Home Control on every push to main and every pull request, and keeps the zip as a download
+# on the run's page. Pushing a tag like v2.5.0 also makes a draft release with the zip attached;
+# publish it from the Releases page after checking the notes.
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    outputs:
+      name: ${{ steps.build.outputs.name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build the app
+        id: build
+        shell: pwsh
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          # A tag v2.5.0 builds version 2.5.0; anything else keeps HomeControl.csproj's version.
+          if ($env:REF_TYPE -eq "tag") {
+            $version = $env:REF_NAME.TrimStart("v")
+            $name = "HomeControl-$version-win-x64"
+            native/build.ps1 -Version $version -Zip "out/$name.zip"
+          } else {
+            $name = "HomeControl-$($env:SHA.Substring(0, 7))-win-x64"
+            native/build.ps1 -Zip "out/$name.zip"
+          }
+          "name=$name" >> $env:GITHUB_OUTPUT
+
+      - name: Build the probe
+        run: dotnet build probe/Probe.csproj -c Release -nologo
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.name }}
+          path: out/*.zip
+          if-no-files-found: error
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build.outputs.name }}
+          path: out
+
+      - name: Make a draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" out/*.zip --repo "$GITHUB_REPOSITORY" --draft \
+            --title "Home Control ${TAG#v}" --generate-notes
