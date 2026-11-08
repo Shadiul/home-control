@@ -181,3 +181,8 @@ automatically; rename them from their row.
 
 - A Tuya "Smart Light RGBCW" bulb (protocol 3.5).
 - Gree air conditioners with Wi-Fi module firmware V3.4.M (AES-GCM).
+
+## Licence
+
+[MIT](LICENSE). The Tuya local protocol code is ported from TinyTuya (also MIT); see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for it and the libraries the app ships with.
