@@ -54,8 +54,8 @@ public static class AppInfo
 
 public sealed class DeviceConfig
 {
-    public string Id { get; set; } = "bff4467c8027f6519efwb0";
-    public string Ip { get; set; } = "192.168.0.167";
+    public string Id { get; set; } = "";
+    public string Ip { get; set; } = "";
     public string Version { get; set; } = "3.5";
     public string Key { get; set; } = "";
     public string Name { get; set; } = "";
