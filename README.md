@@ -160,8 +160,8 @@ old name (`LedControl`, `LEDControlBuild`); they aren't visible in the app.
   pairs the air conditioners, reads them and blinks the first one's display light (`--save` stores them in settings).
 - Settings: `%APPDATA%\Home Control\config.json`. It holds your local key, cloud secret and the air conditioners'
   keys, so keep it private.
-- Earlier Python versions (no longer installed): `led_desktop.py` / `led_music.py` (PySide6 app), and
-  `led_app.py` + `index.html` (browser panel, `Start LED Control.bat`). They share `led_core.py`.
+- The earlier Python versions (a PySide6 app and a browser panel) were removed after 2.4.1; they're in the git
+  history up to commit `b5eabaf`.
 
 ## First-time setup (already done)
 
