@@ -1,16 +1,16 @@
 using System.Net;
 using CommunityToolkit.WinUI.Controls;
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
-using LedControl.Shell;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
+using HomeControl.Shell;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 public sealed partial class SettingsPage : Page
 {

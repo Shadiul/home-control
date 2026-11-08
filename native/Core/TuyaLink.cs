@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// One persistent, encrypted connection to the light (protocol 3.5, TCP port 6668).

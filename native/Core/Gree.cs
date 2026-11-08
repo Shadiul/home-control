@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// Gree air conditioner local protocol (JSON over UDP port 7000), as used by the Gree+ / EWPE Smart apps.

@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using LedControl.Core;
+using HomeControl.Core;
 
-namespace LedControl;
+namespace HomeControl;
 
 /// <summary>probe gree [--save]: find and pair Gree units, read them, blink the first one's display light.</summary>
 static class GreeProbe

@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>MSB3539</NoWarn>
-    <BaseIntermediateOutputPath>$(LOCALAPPDATA)\Temp\LEDControlBuild\probe\obj\</BaseIntermediateOutputPath>
-    <BaseOutputPath>$(LOCALAPPDATA)\Temp\LEDControlBuild\probe\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(LOCALAPPDATA)\Temp\HomeControlBuild\probe\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(LOCALAPPDATA)\Temp\HomeControlBuild\probe\bin\</BaseOutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\native\Core\*.cs" />

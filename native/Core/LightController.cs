@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// Talks to the light over the home network (persistent encrypted link) or Tuya Cloud,

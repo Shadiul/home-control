@@ -1,7 +1,7 @@
-using LedControl.Art;
-using LedControl.Controls;
+using HomeControl.Art;
+using HomeControl.Controls;
 using CommunityToolkit.WinUI.Controls;
-using LedControl.Core;
+using HomeControl.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -12,7 +12,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 /// <summary>
 /// Climate: one tab per air conditioner. A big temperature dial with the room temperature and power,

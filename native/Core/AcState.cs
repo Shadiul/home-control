@@ -1,4 +1,4 @@
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// An air conditioner's settings, as Gree property values:

@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 public sealed partial class AcFrontArt : UserControl
 {

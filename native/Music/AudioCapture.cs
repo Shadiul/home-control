@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using LedControl.Core;
+using HomeControl.Core;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
-namespace LedControl.Music;
+namespace HomeControl.Music;
 
 /// <summary>
 /// Captures audio with WASAPI: a loopback of the default speakers ("what's playing"),

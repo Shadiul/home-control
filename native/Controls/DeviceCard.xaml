@@ -2,10 +2,10 @@
 <!-- An immersive device card: the whole card is a dark scene lit by the device's state, with the picture
      of the device edge to edge, its main control below, and chips plus "Open" at the bottom. -->
 <UserControl
-    x:Class="LedControl.Controls.DeviceCard"
+    x:Class="HomeControl.Controls.DeviceCard"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:LedControl.Controls"
+    xmlns:local="using:HomeControl.Controls"
     RequestedTheme="Dark">
     <Grid CornerRadius="16" BorderBrush="#14FFFFFF" BorderThickness="1">
         <Border x:Name="BaseLayer">

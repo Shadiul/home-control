@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 public sealed partial class SpeakerArt : UserControl
 {

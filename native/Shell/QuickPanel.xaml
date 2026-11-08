@@ -3,7 +3,7 @@
      state with its name, status and a big power button, then its controls on a soft wash of its colour,
      and a footer to open the app or Settings. -->
 <Window
-    x:Class="LedControl.Shell.QuickPanel"
+    x:Class="HomeControl.Shell.QuickPanel"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Home Control">

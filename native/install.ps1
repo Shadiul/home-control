@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $name = "Home Control"
 $oldName = "LED Control"
-$src = Join-Path $env:LOCALAPPDATA "Temp\LEDControlBuild\publish"
+$src = Join-Path $env:LOCALAPPDATA "Temp\HomeControlBuild\publish"
 $programs = [Environment]::GetFolderPath("Programs")
 $uninstallRoot = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"

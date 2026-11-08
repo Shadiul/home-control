@@ -1,11 +1,11 @@
 using System.Text.Json;
-using LedControl.Core;
-using LedControl.Music;
-using LedControl.Shell;
+using HomeControl.Core;
+using HomeControl.Music;
+using HomeControl.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 
-namespace LedControl;
+namespace HomeControl;
 
 public partial class App : Application
 {

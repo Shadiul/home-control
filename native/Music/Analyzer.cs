@@ -1,4 +1,4 @@
-namespace LedControl.Music;
+namespace HomeControl.Music;
 
 /// <summary>Features of one audio block, plus the colour the engine picked for it.</summary>
 public sealed class MusicFrame

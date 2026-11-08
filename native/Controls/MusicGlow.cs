@@ -1,4 +1,4 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// The Home page's music sync control: a round play / stop button sitting on a soft violet glow that

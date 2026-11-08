@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 public static class AppInfo
 {

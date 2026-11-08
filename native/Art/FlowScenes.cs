@@ -1,4 +1,4 @@
-using LedControl.Controls;
+using HomeControl.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
@@ -9,7 +9,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 /// <summary>Pictures for the Climate page's fan and airflow panels, drawn on a 280 × 214 canvas.</summary>
 static class Draw

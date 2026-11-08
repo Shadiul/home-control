@@ -1,9 +1,9 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// Windows 11 colours for drawings and controls built in code, for the element's current theme

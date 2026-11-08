@@ -1,15 +1,15 @@
 # Builds a release copy of Home Control (self-contained: .NET and the Windows App SDK are included).
-#   .\build.ps1        -> %LOCALAPPDATA%\Temp\LEDControlBuild\publish\HomeControl.exe
+#   .\build.ps1        -> %LOCALAPPDATA%\Temp\HomeControlBuild\publish\HomeControl.exe
 # Then run .\install.ps1 to install it.
 $ErrorActionPreference = "Stop"
 
 $dotnet = Join-Path $env:LOCALAPPDATA "Microsoft\dotnet-sdk\dotnet.exe"   # per-user .NET SDK
 if (-not (Test-Path $dotnet)) { $dotnet = "dotnet" }
 
-$out = Join-Path $env:LOCALAPPDATA "Temp\LEDControlBuild\publish"
+$out = Join-Path $env:LOCALAPPDATA "Temp\HomeControlBuild\publish"
 if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
-& $dotnet publish (Join-Path $PSScriptRoot "LedControl.csproj") -c Release -r win-x64 --self-contained `
+& $dotnet publish (Join-Path $PSScriptRoot "HomeControl.csproj") -c Release -r win-x64 --self-contained `
     -p:PublishReadyToRun=true -o $out -nologo -v q
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 

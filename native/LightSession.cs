@@ -1,8 +1,8 @@
-using LedControl.Core;
-using LedControl.Music;
+using HomeControl.Core;
+using HomeControl.Music;
 using Microsoft.UI.Dispatching;
 
-namespace LedControl;
+namespace HomeControl;
 
 public sealed record Scene(string Name, string Glyph, LightCommand Command);
 

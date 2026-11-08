@@ -1,8 +1,8 @@
-using LedControl.Music;
+using HomeControl.Music;
 
 if (args.Length > 0 && args[0] == "gree")
 {
-    await LedControl.GreeProbe.RunAsync(args);
+    await HomeControl.GreeProbe.RunAsync(args);
     return;
 }
 

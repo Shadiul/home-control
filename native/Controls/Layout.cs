@@ -2,7 +2,7 @@ using Windows.Foundation;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// Equal-width columns that fit the space: as many columns of at least <see cref="MinItemWidth"/> as fit,

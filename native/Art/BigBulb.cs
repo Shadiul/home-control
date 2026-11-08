@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 /// <summary>
 /// The Light page's bulb: glass tinted with the light's colour, an LED filament on two wires, a collar and a

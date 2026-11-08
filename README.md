@@ -130,19 +130,18 @@ Needs the .NET 10 SDK. It's installed per user in `%LOCALAPPDATA%\Microsoft\dotn
 
 ```
 cd native
-.\build.ps1      # release build -> %LOCALAPPDATA%\Temp\LEDControlBuild\publish
+.\build.ps1      # release build -> %LOCALAPPDATA%\Temp\HomeControlBuild\publish
 .\install.ps1    # installs to %LOCALAPPDATA%\Programs\Home Control, Start menu, Settings > Apps
 ```
 
-Build output goes to `%LOCALAPPDATA%\Temp\LEDControlBuild` because this folder's path is too long for
+Build output goes to `%LOCALAPPDATA%\Temp\HomeControlBuild` because this folder's path is too long for
 some build tools. For a design check without showing a window, run `HomeControl.exe --screenshots <folder>`;
 it renders every page in light and dark themes off-screen. `--self-test <file.json>` checks the connection,
 tray, air conditioners and audio capture, then exits.
 
 `install.ps1` also replaces an "LED Control" install (the old name): it removes its folder, Start menu shortcut and
 Settings > Apps entry, and moves its settings folder and "Start with Windows" entry to the new name. The app moves
-the settings folder itself too, if it finds only the old one. The C# namespace and the build folder still use the
-old name (`LedControl`, `LEDControlBuild`); they aren't visible in the app.
+the settings folder itself too, if it finds only the old one.
 
 ## Files
 
