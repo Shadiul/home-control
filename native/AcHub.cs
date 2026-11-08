@@ -9,7 +9,7 @@ namespace HomeControl;
 /// </summary>
 public sealed class AcUnit
 {
-    readonly GreeClient client;
+    readonly IAcClient client;
     readonly DispatcherQueue ui;
     readonly Dictionary<string, int> pending = [];
     bool pumping;
@@ -28,7 +28,7 @@ public sealed class AcUnit
     {
         Config = config;
         this.ui = ui;
-        client = new GreeClient(config);
+        client = AppInfo.Demo ? new DemoAcClient(config) : new GreeClient(config);
         client.KeyChanged += () => ui.TryEnqueue(() => KeyChanged?.Invoke());
     }
 
@@ -175,6 +175,11 @@ public sealed class AcHub
     /// <summary>Finds and pairs units on the network. Returns a sentence for the user.</summary>
     public async Task<string> FindAsync()
     {
+        if (AppInfo.Demo)
+        {
+            await Task.Delay(600);
+            return "This is the demo, so it doesn't search the network. The sample air conditioners are all there is.";
+        }
         var known = config.Acs.Select(a => a.Clone()).ToList();
         var r = await Task.Run(() => Gree.DiscoverAsync(known));
         config.Acs = r.Acs;

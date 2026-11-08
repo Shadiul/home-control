@@ -27,7 +27,8 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "icon.ico"));
-        AppWindow.Title = AppInfo.Name;
+        AppWindow.Title = AppInfo.Demo ? AppInfo.Name + " · Demo" : AppInfo.Name;
+        TitleText.Text = AppWindow.Title;
 
         double scale = WinIntegration.GetDpiForWindow(hwnd) / 96.0;
         if (AppWindow.Presenter is OverlappedPresenter p)

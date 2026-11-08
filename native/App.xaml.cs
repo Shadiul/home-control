@@ -29,9 +29,9 @@ public partial class App : Application
         Instance = this;
         this.args = args;
         InitializeComponent();
-        Config = AppConfig.Load();
+        Config = AppInfo.Demo ? Demo.Config() : AppConfig.Load();
         if (Config.LoadError != null) Log($"Couldn't read the settings file {AppInfo.ConfigPath}: {Config.LoadError}");
-        else if (!Config.LoadedFromFile) Log($"No settings file at {AppInfo.ConfigPath}: starting from the defaults.");
+        else if (!Config.LoadedFromFile && !Config.IsDemo) Log($"No settings file at {AppInfo.ConfigPath}: starting from the defaults.");
         Controller = new LightController(Config);
         Music = new MusicEngine(Controller);
         ApplyMusicPrefs();
@@ -177,8 +177,12 @@ public partial class App : Application
     {
         try
         {
-            Directory.CreateDirectory(AppInfo.ConfigDir);
-            File.AppendAllText(Path.Combine(AppInfo.ConfigDir, "log.txt"), $"{DateTime.Now:s} {text}\n");
+            // The demo leaves the real settings folder alone.
+            string path = AppInfo.Demo
+                ? Path.Combine(Path.GetTempPath(), "HomeControl-demo-log.txt")
+                : Path.Combine(AppInfo.ConfigDir, "log.txt");
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.AppendAllText(path, $"{DateTime.Now:s} {text}\n");
         }
         catch
         {

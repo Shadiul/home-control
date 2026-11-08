@@ -13,11 +13,13 @@ public static class Program
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         if (args.Contains("--uninstall")) return WinIntegration.Uninstall();
-        HomeControl.Core.AppInfo.MoveOldSettings();
+        HomeControl.Core.AppInfo.Demo = args.Contains("--demo");
+        if (!HomeControl.Core.AppInfo.Demo) HomeControl.Core.AppInfo.MoveOldSettings();
 
         // One copy per user: a second launch just brings the running window forward.
-        // (Screenshot mode renders off-screen and exits, so it may run beside the real app.)
-        if (!args.Contains("--screenshots"))
+        // (Screenshot mode renders off-screen and exits, and the demo touches nothing real,
+        // so both may run beside the real app.)
+        if (!args.Contains("--screenshots") && !HomeControl.Core.AppInfo.Demo)
         {
             var instance = AppInstance.FindOrRegisterForKey("HomeControl-" + Environment.UserName);
             if (!instance.IsCurrent)

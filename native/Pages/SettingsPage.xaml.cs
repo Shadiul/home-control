@@ -72,7 +72,9 @@ public sealed partial class SettingsPage : Page
 
         Select(ThemeBox, c.Theme);
         TrayToggle.IsOn = c.CloseToTray;
-        StartupToggle.IsOn = WinIntegration.StartupEnabled;
+        // The demo can't add itself to the startup list.
+        StartupToggle.IsOn = !AppInfo.Demo && WinIntegration.StartupEnabled;
+        StartupToggle.IsEnabled = !AppInfo.Demo;
         syncing = false;
         LoadAcs();
     }
