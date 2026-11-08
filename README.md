@@ -7,6 +7,22 @@ same UI framework Windows 11's own apps use. It talks to the devices directly: t
 (Tuya 3.5), the Tuya Cloud API as a backup, the Gree air conditioner protocol and music analysis are all in C#.
 Nothing else needs to be installed, and no server or account is needed for the air conditioners.
 
+![Home: the time of day, scenes, and a card for the light and each air conditioner](docs/screenshots/home.png)
+
+| Light | Climate |
+| --- | --- |
+| ![The Light page in colour mode](docs/screenshots/light.png) | ![The Climate page: temperature dial and modes](docs/screenshots/climate.png) |
+| **Music sync** | **Quick panel** (from the notification area) |
+| ![Music sync running in the Spectrum style](docs/screenshots/music-sync.png) | ![The quick panel's air conditioner tab](docs/screenshots/quick-panel.png) |
+
+The screenshots show the app's demo devices.
+
+## Try it without devices
+
+Run `HomeControl.exe --demo` to try it with a sample light and two air conditioners. They're simulated in memory:
+nothing is sent over the network, your settings aren't read or changed, and changes last until you close it. It can
+run beside the normal app.
+
 ## Using it
 
 Pages are along the top: **Home**, **Light**, **Climate**, **Music sync**, and Settings (the gear on the right).
@@ -135,8 +151,9 @@ cd native
 
 Build output goes to `%LOCALAPPDATA%\Temp\HomeControlBuild` because this folder's path is too long for
 some build tools. For a design check without showing a window, run `HomeControl.exe --screenshots <folder>`;
-it renders every page in light and dark themes off-screen. `--self-test <file.json>` checks the connection,
-tray, air conditioners and audio capture, then exits.
+it renders every page in light and dark themes off-screen. Add `--demo` to render the demo devices instead of
+your own (that's how `docs/screenshots` is made). `--self-test <file.json>` checks the connection, tray, air
+conditioners and audio capture, then exits.
 
 `install.ps1` also replaces an "LED Control" install (the old name): it removes its folder, Start menu shortcut and
 Settings > Apps entry, and moves its settings folder and "Start with Windows" entry to the new name. The app moves
@@ -147,7 +164,7 @@ the settings folder itself too, if it finds only the old one.
 - `native/`: the app.
   - `Core/`: light protocol (`TuyaProtocol.cs`, `TuyaLink.cs`), cloud API (`TuyaCloud.cs`), routing between them
     (`LightController.cs`), state model, network discovery, and settings. Air conditioners: `Gree.cs` (encryption,
-    scan, pairing, status and commands) and `AcState.cs`.
+    scan, pairing, status and commands) and `AcState.cs`. `Demo.cs`: the simulated devices for `--demo`.
   - `Music/`: WASAPI audio capture (NAudio), FFT analysis and beat detection, and the streaming engine.
   - `Pages/`: the Light, Music sync, Air conditioners and Settings pages (XAML). `AirflowIcons.cs` holds the
     airflow arrows, drawn by a small script as filled shapes so they take the button's text colour.
