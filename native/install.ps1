@@ -1,5 +1,7 @@
 # Installs Home Control for the current user (no admin needed):
-#   - copies the build to %LOCALAPPDATA%\Programs\Home Control (replacing any earlier version)
+#   - copies the app to %LOCALAPPDATA%\Programs\Home Control (replacing any earlier version): from the
+#     folder this script is in when that holds HomeControl.exe (a downloaded release), otherwise from
+#     .\build.ps1's output
 #   - adds a Start menu shortcut
 #   - lists it in Settings > Apps > Installed apps, with Uninstall
 #   - replaces "LED Control" (the app's name before 2.2): removes its files and entries, and moves its
@@ -12,7 +14,8 @@ $ErrorActionPreference = "Stop"
 
 $name = "Home Control"
 $oldName = "LED Control"
-$src = Join-Path $env:LOCALAPPDATA "Temp\HomeControlBuild\publish"
+$src = if (Test-Path (Join-Path $PSScriptRoot "HomeControl.exe")) { $PSScriptRoot }
+       else { Join-Path $env:LOCALAPPDATA "Temp\HomeControlBuild\publish" }
 $programs = [Environment]::GetFolderPath("Programs")
 $uninstallRoot = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
 $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
@@ -60,6 +63,7 @@ if ($Remove) {
 }
 
 if (-not (Test-Path (Join-Path $src "HomeControl.exe"))) { throw "Build first: .\build.ps1" }
+if ((Resolve-Path $src).Path.TrimEnd("\") -eq $target.TrimEnd("\")) { throw "This is already the installed copy." }
 $run = Get-ItemProperty $runKey -ErrorAction SilentlyContinue
 $hadStartup = ($null -ne $run.$name) -or ($null -ne $run.$oldName)
 
@@ -96,7 +100,7 @@ $version = "$($v.FileMajorPart).$($v.FileMinorPart).$($v.FileBuildPart)"
 $sizeKb = [int]((Get-ChildItem $target -Recurse -File | Measure-Object Length -Sum).Sum / 1KB)
 New-Item $uninstallKey -Force | Out-Null
 $values = @{
-    DisplayName = $name; DisplayVersion = $version; Publisher = "Personal"
+    DisplayName = $name; DisplayVersion = $version; Publisher = "Shadiul Huda"
     DisplayIcon = "$exe,0"; InstallLocation = $target; UninstallString = "`"$exe`" --uninstall"
 }
 foreach ($k in $values.Keys) { Set-ItemProperty $uninstallKey -Name $k -Value $values[$k] }
