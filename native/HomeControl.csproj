@@ -26,9 +26,9 @@
     <Version>2.4.1</Version>
     <Product>Home Control</Product>
     <AssemblyTitle>Home Control</AssemblyTitle>
-    <Company>Personal</Company>
-    <Description>Home Control</Description>
-    <Copyright>Personal use</Copyright>
+    <Company>Shadiul Huda</Company>
+    <Description>Control Tuya lights and Gree air conditioners from Windows</Description>
+    <Copyright>Copyright © 2026 Shadiul Huda</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
