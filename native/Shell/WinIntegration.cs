@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using LedControl.Core;
+using HomeControl.Core;
 using Microsoft.Win32;
 
-namespace LedControl.Shell;
+namespace HomeControl.Shell;
 
 /// <summary>Start with Windows, uninstall, and the few Win32 calls WinUI doesn't cover.</summary>
 public static partial class WinIntegration

@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 /// <summary>
 /// A speaker cone seen from the front, sitting on a soft violet glow that breathes while music sync runs

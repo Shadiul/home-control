@@ -1,14 +1,14 @@
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
-using LedControl.Music;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
+using HomeControl.Music;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 /// <summary>
 /// Music sync: Start / Stop, a minimal stage (one orb in the style's colour breathing inside a soft halo, with

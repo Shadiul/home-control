@@ -1,4 +1,4 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -8,7 +8,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>Soft coloured glows and shadows, drawn with gradients (XAML has no blur for elements).</summary>
 public static class Glow

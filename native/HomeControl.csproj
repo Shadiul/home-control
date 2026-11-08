@@ -4,7 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-    <RootNamespace>LedControl</RootNamespace>
+    <RootNamespace>HomeControl</RootNamespace>
     <AssemblyName>HomeControl</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
@@ -26,9 +26,9 @@
     <Version>2.4.1</Version>
     <Product>Home Control</Product>
     <AssemblyTitle>Home Control</AssemblyTitle>
-    <Company>Personal</Company>
-    <Description>Home Control</Description>
-    <Copyright>Personal use</Copyright>
+    <Company>Shadiul Huda</Company>
+    <Description>Control Tuya lights and Gree air conditioners from Windows</Description>
+    <Copyright>Copyright © 2026 Shadiul Huda</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,6 +47,8 @@
   <ItemGroup>
     <Content Include="Assets\icon.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\icon.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- "dotnet publish" of an unpackaged WinUI app leaves out the app's own compiled XAML (.xbf)

@@ -1,7 +1,7 @@
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
-using LedControl.Music;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
+using HomeControl.Music;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -11,7 +11,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 using Windows.UI;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 /// <summary>
 /// Home: a banner with the house and the day, house-wide scenes, and an immersive card per device

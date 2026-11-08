@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 public enum CommandKind { Power, White, Colour }
 

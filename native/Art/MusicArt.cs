@@ -8,7 +8,7 @@ using Windows.Foundation;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 /// <summary>Soft shapes for the music art: blurred discs drawn as radial gradients, and breathing animations.</summary>
 static class Soft

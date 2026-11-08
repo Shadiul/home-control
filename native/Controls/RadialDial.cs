@@ -13,7 +13,7 @@ using Path = Microsoft.UI.Xaml.Shapes.Path;
 using Windows.Foundation;
 using Windows.System;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// A thick ring slider: a 270° arc from the bottom left, over the top, to the bottom right, with a tall pill

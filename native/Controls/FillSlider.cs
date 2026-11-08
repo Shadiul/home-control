@@ -1,4 +1,4 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Media;
 using Windows.System;
 using Windows.UI;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// A slider drawn in code: drag or click anywhere on it, use the arrow keys, Page Up/Down, Home and End, and it

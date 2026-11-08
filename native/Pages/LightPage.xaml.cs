@@ -1,6 +1,6 @@
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -9,7 +9,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 /// <summary>
 /// Light: a realistic bulb that glows in the light's colour (click it to turn the light on or off) beside a

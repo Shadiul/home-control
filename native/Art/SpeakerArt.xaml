@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A speaker cabinet with sound waves either side while music sync runs. Drawn on a 300 × 128 canvas. -->
 <UserControl
-    x:Class="LedControl.Art.SpeakerArt"
+    x:Class="HomeControl.Art.SpeakerArt"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>

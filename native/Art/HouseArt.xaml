@@ -2,7 +2,7 @@
 <!-- The house in the Home banner: the window glows with the light, and the AC on the wall blows air while
      any unit runs. A moon at night, a sun by day. Drawn on a 240 × 150 canvas. -->
 <UserControl
-    x:Class="LedControl.Art.HouseArt"
+    x:Class="HomeControl.Art.HouseArt"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Canvas Width="240" Height="150">

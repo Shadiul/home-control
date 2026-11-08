@@ -1,16 +1,16 @@
 using System.Net;
 using CommunityToolkit.WinUI.Controls;
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
-using LedControl.Shell;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
+using HomeControl.Shell;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace LedControl.Pages;
+namespace HomeControl.Pages;
 
 public sealed partial class SettingsPage : Page
 {
@@ -60,7 +60,7 @@ public sealed partial class SettingsPage : Page
         DeviceKey.PlaceholderText = c.Device.Key.Length > 0 ? "Saved. Leave blank to keep it." : "Not set";
         bool cloud = c.Cloud.ApiKey.Length > 0 && c.Cloud.ApiSecret.Length > 0;
         DeviceExpander.Header = string.IsNullOrWhiteSpace(c.Device.Name) ? "Light" : c.Device.Name;
-        DeviceExpander.Description = $"Tuya · {c.Device.Ip} · " + (c.Device.Key.Length > 0 ? "local key saved" : "no local key")
+        DeviceExpander.Description = (c.Device.Ip.Length > 0 ? $"Tuya · {c.Device.Ip} · " : "Tuya · no address yet · ") + (c.Device.Key.Length > 0 ? "local key saved" : "no local key")
                                      + (cloud ? " · cloud backup on" : "");
         string region = TuyaCloud.Regions.FirstOrDefault(r => r.Item1 == c.Cloud.Region).Item2 ?? c.Cloud.Region;
         CloudExpander.Description = cloud ? $"{region} data centre · Access ID and secret saved" : "Not set up. Optional: a backup when the home network fails, and the way to get the light's local key.";
@@ -284,7 +284,7 @@ public sealed partial class SettingsPage : Page
         }
         if (!IPAddress.TryParse(ip, out _))
         {
-            Notify(InfoBarSeverity.Warning, "Check the IP address", $"\"{ip}\" isn't a valid IP address, like 192.168.0.167.");
+            Notify(InfoBarSeverity.Warning, "Check the IP address", $"\"{ip}\" isn't a valid IP address, like 192.168.1.50.");
             return;
         }
         if (key.Length > 0 && key.Length != 16)

@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.UI;
 
-namespace LedControl.Art;
+namespace HomeControl.Art;
 
 public sealed partial class BulbArt : UserControl
 {

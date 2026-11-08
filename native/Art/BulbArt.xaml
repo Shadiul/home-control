@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- A realistic light bulb that glows in the light's colour and brightness. Drawn on a 300 × 128 canvas. -->
 <UserControl
-    x:Class="LedControl.Art.BulbArt"
+    x:Class="HomeControl.Art.BulbArt"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>

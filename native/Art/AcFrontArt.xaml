@@ -2,7 +2,7 @@
 <!-- A wall air conditioner seen from the front: the display shows the target temperature, the louvre opens
      and cool air flows out of the outlet while it runs. Drawn on a 300 × 128 canvas. -->
 <UserControl
-    x:Class="LedControl.Art.AcFrontArt"
+    x:Class="HomeControl.Art.AcFrontArt"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>

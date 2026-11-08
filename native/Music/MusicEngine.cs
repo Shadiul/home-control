@@ -1,7 +1,7 @@
 using System.Diagnostics;
-using LedControl.Core;
+using HomeControl.Core;
 
-namespace LedControl.Music;
+namespace HomeControl.Music;
 
 /// <summary>
 /// Music sync: listens to audio, analyses it and streams colours to the light through its

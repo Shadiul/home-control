@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
-using LedControl.Art;
-using LedControl.Controls;
-using LedControl.Core;
-using LedControl.Music;
+using HomeControl.Art;
+using HomeControl.Controls;
+using HomeControl.Core;
+using HomeControl.Music;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -14,7 +14,7 @@ using Windows.Graphics;
 using Windows.UI;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Shell;
+namespace HomeControl.Shell;
 
 /// <summary>
 /// The quick panel: click the notification-area icon to open it just above the taskbar. One tab per device

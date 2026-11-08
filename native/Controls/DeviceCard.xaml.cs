@@ -1,10 +1,10 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Windows.UI;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 public sealed partial class DeviceCard : UserControl
 {

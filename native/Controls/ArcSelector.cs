@@ -1,4 +1,4 @@
-using LedControl.Art;
+using HomeControl.Art;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.Foundation;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace LedControl.Controls;
+namespace HomeControl.Controls;
 
 /// <summary>
 /// A thick arc with five positions and a tall pill handle, drawn over a picture (280 × 214), as on the

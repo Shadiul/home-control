@@ -1,9 +1,9 @@
-﻿using LedControl.Shell;
+﻿using HomeControl.Shell;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
 
-namespace LedControl;
+namespace HomeControl;
 
 public static class Program
 {
@@ -13,7 +13,7 @@ public static class Program
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         if (args.Contains("--uninstall")) return WinIntegration.Uninstall();
-        LedControl.Core.AppInfo.MoveOldSettings();
+        HomeControl.Core.AppInfo.MoveOldSettings();
 
         // One copy per user: a second launch just brings the running window forward.
         // (Screenshot mode renders off-screen and exits, so it may run beside the real app.)

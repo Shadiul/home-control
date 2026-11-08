@@ -1,7 +1,7 @@
-using LedControl.Core;
+using HomeControl.Core;
 using Microsoft.UI.Dispatching;
 
-namespace LedControl;
+namespace HomeControl;
 
 /// <summary>
 /// UI-thread view of one air conditioner. Changes show at once (Shown) and are sent in the background;

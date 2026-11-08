@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>Errors worth showing to the user as-is.</summary>
 public sealed class LedException(string message) : Exception(message);

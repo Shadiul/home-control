@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices.WindowsRuntime;
-using LedControl.Core;
-using LedControl.Pages;
-using LedControl.Shell;
+using HomeControl.Core;
+using HomeControl.Pages;
+using HomeControl.Shell;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -12,7 +12,7 @@ using Windows.Graphics;
 using Windows.Graphics.Imaging;
 using Windows.UI;
 
-namespace LedControl;
+namespace HomeControl;
 
 public sealed partial class MainWindow : Window
 {

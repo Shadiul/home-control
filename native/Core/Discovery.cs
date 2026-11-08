@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// Finds the light by listening for the broadcasts Tuya devices send every few seconds

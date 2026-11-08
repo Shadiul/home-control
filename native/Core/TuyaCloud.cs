@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace LedControl.Core;
+namespace HomeControl.Core;
 
 /// <summary>
 /// Minimal Tuya Cloud (IoT platform OpenAPI) client with the HMAC-SHA256 request signing

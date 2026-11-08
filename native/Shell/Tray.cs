@@ -1,9 +1,9 @@
 using System.Windows.Input;
 using H.NotifyIcon;
-using LedControl.Core;
+using HomeControl.Core;
 using Microsoft.UI.Xaml.Controls;
 
-namespace LedControl.Shell;
+namespace HomeControl.Shell;
 
 sealed class RelayCommand(Action run) : ICommand
 {

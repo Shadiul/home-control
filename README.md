@@ -1,11 +1,11 @@
 # Home Control
 
-Control your Tuya Wi-Fi light and your Gree air conditioners from this PC.
+Control a Tuya (Smart Life) Wi-Fi light and Gree air conditioners from Windows, over your home network.
 
-**Home Control 2.4** (called LED Control before 2.2) is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10),
-the same UI framework Windows 11's own apps use. It's in the Start menu. Python isn't needed any more:
-the light's encrypted local protocol (Tuya 3.5), the Tuya Cloud API, the Gree air conditioner protocol and music
-analysis are all in C#.
+**Home Control 2.4** is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10), the
+same UI framework Windows 11's own apps use. It talks to the devices directly: the light's encrypted local protocol
+(Tuya 3.5), the Tuya Cloud API as a backup, the Gree air conditioner protocol and music analysis are all in C#.
+Nothing else needs to be installed, and no server or account is needed for the air conditioners.
 
 ## Using it
 
@@ -95,12 +95,7 @@ Uninstall from **Settings > Apps > Installed apps > Home Control**. Your setting
 
 - **Home network (fast, works without internet):** one encrypted connection kept open to the light
   (TCP 6668, Tuya protocol 3.5: AES-GCM with a per-session key). Commands take about 0.15 s.
-  This LED doesn't answer ARP lookups ("who has 192.168.0.167?"), so the PC has a permanent ARP entry for it
-  (added once in an admin PowerShell):
-  `netsh interface ipv4 add neighbors "Ethernet" 192.168.0.167 b8-06-0d-00-b0-e7`
-  To undo it: `netsh interface ipv4 delete neighbors "Ethernet" 192.168.0.167`.
-  If the router gives the light a different IP, **Run check** finds it and updates the setting; the ARP entry then
-  needs the new IP too. To avoid this, reserve 192.168.0.167 for MAC b8:06:0d:00:b0:e7 in the router.
+  If the router gives the light a different IP, **Check connections** finds it and updates the setting.
 - **Tuya Cloud (backup):** works from anywhere with internet, slower (about 0.5 to 1 s).
 
 "Automatic" tries the home network first and falls back to the cloud, retrying the home network after a minute.
@@ -109,40 +104,43 @@ Uninstall from **Settings > Apps > Installed apps > Home Control**. Your setting
 
 Gree units are controlled over the home network only (UDP port 7000, the protocol the Gree+ and EWPE Smart apps use
 locally), so no account is needed. Each unit is paired once and gives back its own key, which is saved in the settings
-file. Newer Wi-Fi modules, like these two, use AES-GCM; older ones use AES-ECB, and the app handles both. Replies
-take about 0.1 s. If a unit is paired again from the phone app it gets a new key; the app notices and pairs again.
+file. Newer Wi-Fi modules use AES-GCM; older ones use AES-ECB, and the app handles both. Replies take about 0.1 s.
+If a unit is paired again from the phone app it gets a new key; the app notices and pairs again. Many other AC brands
+use Gree's Wi-Fi module and may work too.
 
-Like the light, the two units don't answer ARP lookups, so the PC has permanent entries for them (added once in an
-admin PowerShell):
+### If a device can't be reached
+
+Some Tuya and Gree Wi-Fi modules don't answer ARP lookups, so Windows can't find them even though the phone app
+can. A permanent ARP entry fixes this (once, in an admin PowerShell; use your network adapter's name and the
+device's IP and MAC address, which your router lists):
 
 ```
-netsh interface ipv4 add neighbors "Ethernet" 192.168.0.170 94-24-b8-80-71-42
-netsh interface ipv4 add neighbors "Ethernet" 192.168.0.196 7c-b8-e6-15-e0-55
+netsh interface ipv4 add neighbors "Ethernet" 192.168.1.50 aa-bb-cc-dd-ee-ff
 ```
 
-To undo: `netsh interface ipv4 delete neighbors "Ethernet" 192.168.0.170` (and `.196`). If the router gives a unit a
-new address, its entry needs the new IP before **Find air conditioners** can see it. Reserving the addresses in the
-router (Tenda: Advanced Settings > DHCP Reservation) avoids this.
+To undo it: `netsh interface ipv4 delete neighbors "Ethernet" 192.168.1.50`. If the router later gives the device a
+new address, the entry needs the new IP too, so it's best to reserve the device's address in the router (DHCP
+reservation).
 
 ## Building
 
-Needs the .NET 10 SDK. It's installed per user in `%LOCALAPPDATA%\Microsoft\dotnet-sdk` (no Visual Studio needed).
+Needs Windows 10 or 11 (x64) and the .NET 10 SDK; Visual Studio isn't needed. `build.ps1` uses `dotnet` from
+the PATH, or a per-user SDK in `%LOCALAPPDATA%\Microsoft\dotnet-sdk` if there is one.
 
 ```
 cd native
-.\build.ps1      # release build -> %LOCALAPPDATA%\Temp\LEDControlBuild\publish
+.\build.ps1      # release build -> %LOCALAPPDATA%\Temp\HomeControlBuild\publish
 .\install.ps1    # installs to %LOCALAPPDATA%\Programs\Home Control, Start menu, Settings > Apps
 ```
 
-Build output goes to `%LOCALAPPDATA%\Temp\LEDControlBuild` because this folder's path is too long for
+Build output goes to `%LOCALAPPDATA%\Temp\HomeControlBuild` because this folder's path is too long for
 some build tools. For a design check without showing a window, run `HomeControl.exe --screenshots <folder>`;
 it renders every page in light and dark themes off-screen. `--self-test <file.json>` checks the connection,
 tray, air conditioners and audio capture, then exits.
 
 `install.ps1` also replaces an "LED Control" install (the old name): it removes its folder, Start menu shortcut and
 Settings > Apps entry, and moves its settings folder and "Start with Windows" entry to the new name. The app moves
-the settings folder itself too, if it finds only the old one. The C# namespace and the build folder still use the
-old name (`LedControl`, `LEDControlBuild`); they aren't visible in the app.
+the settings folder itself too, if it finds only the old one.
 
 ## Files
 
@@ -160,27 +158,31 @@ old name (`LedControl`, `LEDControlBuild`); they aren't visible in the app.
   pairs the air conditioners, reads them and blinks the first one's display light (`--save` stores them in settings).
 - Settings: `%APPDATA%\Home Control\config.json`. It holds your local key, cloud secret and the air conditioners'
   keys, so keep it private.
-- Earlier Python versions (no longer installed): `led_desktop.py` / `led_music.py` (PySide6 app), and
-  `led_app.py` + `index.html` (browser panel, `Start LED Control.bat`). They share `led_core.py`.
+- The earlier Python versions (a PySide6 app and a browser panel) were removed after 2.4.1; they're in the git
+  history up to commit `b5eabaf`.
 
-## First-time setup (already done)
+## First-time setup
 
-1. Make a free account at iot.tuya.com and create a Cloud project (Smart Home, your data centre).
+**The light.** Tuya lights need a *local key* for home network control. The Tuya Cloud project gets it for you:
+
+1. Make a free account at iot.tuya.com and create a Cloud project (Smart Home). Pick the data centre your Smart Life
+   account lives in; it isn't always the nearest one (accounts in Bangladesh, for example, are in Central Europe).
 2. In that project, go to Devices → Link App Account, and scan the QR code with the Smart Life app (Me → scan icon).
    Then click OK in the "Link App Account" dialog on the website.
-3. In Home Control, open Settings → Tuya Cloud, enter the project's Access ID and Access Secret, and click
-   **Save and get local key**.
-4. Click **Run check**.
+3. In Home Control, open Settings, enter the light's device ID (shown in the Tuya project's device list) and its IP
+   address, and save.
+4. Under Connection, enter the project's Access ID and Access Secret, and click **Save and get local key**.
+5. Click **Check connections**.
 
-## Device found on 2026-11-07
+**Air conditioners.** Click **Find devices** in Settings. Units on the same network are found and paired
+automatically; rename them from their row.
 
-- "Smart Light RGBCW": ID `bff4467c8027f6519efwb0`, IP `192.168.0.167`, protocol 3.5
-- Tuya Cloud project "LED Control", **Central Europe** data centre. Bangladesh Smart Life accounts live there,
-  not in Western America. The light is set to "Controllable" in the project.
+## Tested with
 
-## Air conditioners found on 2026-11-07
+- A Tuya "Smart Light RGBCW" bulb (protocol 3.5).
+- Gree air conditioners with Wi-Fi module firmware V3.4.M (AES-GCM).
 
-Both are Gree units with Wi-Fi module firmware V3.4.M, paired with AES-GCM. The router lists them without names.
+## Licence
 
-- "Air conditioner 1": `192.168.0.170`, MAC `94:24:b8:80:71:42`
-- "Air conditioner 2": `192.168.0.196`, MAC `7c:b8:e6:15:e0:55`
+[MIT](LICENSE). The Tuya local protocol code is ported from TinyTuya (also MIT); see
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for it and the libraries the app ships with.
