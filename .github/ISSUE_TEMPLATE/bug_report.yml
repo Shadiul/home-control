@@ -1,0 +1,37 @@
+name: Something isn't working
+description: A bug, a crash, or a device that stopped responding
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Home Control version
+      description: Settings > About.
+      placeholder: "2.5.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: Brand and model of the light or air conditioner involved, if any.
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: >-
+        The last lines of %APPDATA%\Home Control\log.txt, if there's anything there.
+        Please don't paste config.json: it holds your device keys.
+      render: text

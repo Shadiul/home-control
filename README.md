@@ -2,7 +2,7 @@
 
 Control a Tuya (Smart Life) Wi-Fi light and Gree air conditioners from Windows, over your home network.
 
-**Home Control 2.4** is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10), the
+**Home Control 2.5** is a native Windows 11 app built with **WinUI 3 and the Windows App SDK** (C#, .NET 10), the
 same UI framework Windows 11's own apps use. It talks to the devices directly: the light's encrypted local protocol
 (Tuya 3.5), the Tuya Cloud API as a backup, the Gree air conditioner protocol and music analysis are all in C#.
 Nothing else needs to be installed, and no server or account is needed for the air conditioners.
@@ -16,6 +16,17 @@ Nothing else needs to be installed, and no server or account is needed for the a
 | ![Music sync running in the Spectrum style](docs/screenshots/music-sync.png) | ![The quick panel's air conditioner tab](docs/screenshots/quick-panel.png) |
 
 The screenshots show the app's demo devices.
+
+## Install
+
+1. Download the latest `HomeControl-<version>-win-x64.zip` from [Releases](../../releases) and extract it.
+2. Run **Install Home Control.cmd** in the extracted folder. It installs for your account only (no admin needed),
+   adds a Start menu shortcut and an entry in Settings > Apps for uninstalling. Your settings are kept across updates.
+   You can also just run `HomeControl.exe` from the folder without installing.
+3. Open **Home Control** from the Start menu and follow [First-time setup](#first-time-setup).
+
+The download isn't code-signed yet, so Windows SmartScreen may warn the first time: choose **More info** → **Run
+anyway**. Needs Windows 10 (2004) or later, x64.
 
 ## Try it without devices
 
@@ -147,6 +158,7 @@ the PATH, or a per-user SDK in `%LOCALAPPDATA%\Microsoft\dotnet-sdk` if there is
 cd native
 .\build.ps1      # release build -> %LOCALAPPDATA%\Temp\HomeControlBuild\publish
 .\install.ps1    # installs to %LOCALAPPDATA%\Programs\Home Control, Start menu, Settings > Apps
+.\build.ps1 -Zip ..\out\HomeControl.zip   # also packs a release zip, as GitHub does
 ```
 
 Build output goes to `%LOCALAPPDATA%\Temp\HomeControlBuild` because this folder's path is too long for
@@ -203,3 +215,8 @@ automatically; rename them from their row.
 
 [MIT](LICENSE). The Tuya local protocol code is ported from TinyTuya (also MIT); see
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for it and the libraries the app ships with.
+
+## Contributing
+
+Fixes, ideas and support for more devices are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). To ask for a device,
+open an issue with the **Support my device** form.
